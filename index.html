@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐾 守護校貓計畫 | 拍立得抽獎與周邊認購</title>
+    
     <link rel="icon" href="icon/icon.jpg" type="image/jpeg">
+    
     <style>
-        /* 全域樣式設定 */
         :root {
             --primary-peach: #ffb7b2;
             --secondary-cream: #fff4e6;
             --accent-brown: #6d4c41;
             --soft-white: #ffffff;
             --success-green: #a5d6a7;
+            --progress-bg: #e0e0e0;
         }
 
         body {
@@ -24,7 +26,6 @@
             overflow-x: hidden;
         }
 
-        /* 標題區 */
         header {
             background-color: var(--soft-white);
             padding: 50px 20px;
@@ -38,21 +39,61 @@
             color: #d88a8a;
         }
 
+        /* --- 募資進度條樣式 --- */
+        .funding-container {
+            max-width: 600px;
+            margin: 25px auto 0 auto;
+            padding: 0 20px;
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 24px;
+            background-color: var(--progress-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%; /* 初始為 0，由 JS 控制 */
+            background: linear-gradient(90deg, #ffb7b2, #ff9a93);
+            border-radius: 12px;
+            transition: width 1.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .progress-percent {
+            color: white;
+            font-size: 0.8rem;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        /* --- 原有樣式 --- */
         .container {
             max-width: 1000px;
             margin: 40px auto;
             padding: 0 20px;
         }
 
-        /* 區塊標題 */
         .section-title {
             text-align: center;
             margin-bottom: 30px;
             font-size: 1.8rem;
-            position: relative;
         }
 
-        /* 拍立得抽獎區 */
         .lottery-box {
             background: var(--soft-white);
             border-radius: 40px;
@@ -62,7 +103,6 @@
             margin-bottom: 60px;
         }
 
-        /* 拍立得照片樣式 */
         .polaroid-frame {
             width: 240px;
             height: 300px;
@@ -79,133 +119,40 @@
         }
 
         .polaroid-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none; /* 初始隱藏，抽中才顯示 */
+            width: 100%; height: 100%; object-fit: cover; display: none;
         }
 
-        .placeholder-text {
-            font-size: 4rem;
-            color: var(--secondary-cream);
-        }
+        .placeholder-text { font-size: 4rem; color: var(--secondary-cream); }
 
-        /* 抽獎動畫 */
-        .shaking {
-            animation: shake 0.1s infinite;
-        }
-
+        .shaking { animation: shake 0.1s infinite; }
         @keyframes shake {
             0% { transform: rotate(-2deg) translate(2px, 2px); }
             50% { transform: rotate(2deg) translate(-2px, -2px); }
             100% { transform: rotate(-2deg) translate(2px, 2px); }
         }
 
-        /* 按鈕樣式 */
         .btn {
             background-color: var(--primary-peach);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-            box-shadow: 0 4px 10px rgba(255, 183, 178, 0.4);
+            color: white; border: none; padding: 15px 40px;
+            border-radius: 50px; font-size: 1.2rem; font-weight: bold;
+            cursor: pointer; transition: 0.3s;
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
-            background-color: #ff9a93;
-        }
-
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* 表單樣式 */
         #order-form {
-            max-width: 500px;
-            margin: 30px auto 0 auto;
-            text-align: left;
-            display: none; /* 抽獎後顯示 */
-            background: var(--secondary-cream);
-            padding: 30px;
-            border-radius: 20px;
+            max-width: 500px; margin: 30px auto 0 auto; text-align: left;
+            display: none; background: var(--secondary-cream); padding: 30px; border-radius: 20px;
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid white; border-radius: 10px; box-sizing: border-box; }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        .item-card { background: white; border-radius: 25px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.03); text-align: center; padding-bottom: 25px; transition: 0.3s; }
+        .item-card img { width: 100%; height: 250px; object-fit: cover; }
+        .price { color: #e57373; font-size: 1.3rem; font-weight: bold; }
 
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid white;
-            border-radius: 10px;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .form-group input:focus {
-            border-color: var(--primary-peach);
-        }
-
-        /* 周邊選購區 */
-        .shop-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-        }
-
-        .item-card {
-            background: white;
-            border-radius: 25px;
-            overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.03);
-            text-align: center;
-            padding-bottom: 25px;
-            transition: 0.3s;
-        }
-
-        .item-card:hover {
-            transform: translateY(-10px);
-        }
-
-        .item-card img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        .item-info h3 {
-            margin: 15px 0 5px 0;
-        }
-
-        .price {
-            color: #e57373;
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        footer {
-            text-align: center;
-            padding: 60px 20px;
-            background: #fff;
-            margin-top: 60px;
-            border-top: 1px solid #eee;
-            font-size: 0.9rem;
-            color: #999;
-        }
+        footer { text-align: center; padding: 60px 20px; background: #fff; margin-top: 60px; font-size: 0.9rem; color: #999; }
     </style>
 </head>
 <body>
@@ -213,35 +160,35 @@
 <header>
     <h1>🐾 台科大校貓校狗守護計畫</h1>
     <p>溫暖每一個小生命，您的支持是我們最大的動力。</p>
+
+    <div class="funding-container">
+        <div class="progress-labels">
+            <span>目前募得：$<span id="current-amount">0</span></span>
+            <span>目標：$<span id="target-amount">75,000</span></span>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-fill">
+                <span class="progress-percent" id="progress-percent">0%</span>
+            </div>
+        </div>
+    </div>
 </header>
 
 <div class="container">
     
     <section class="lottery-box">
         <h2 class="section-title">限量拍立得隨機抽🐾</h2>
-        <p>每一張都是貓貓獨一無二的日常，快來試試手氣吧！ (每次 $100)</p>
-        
         <div class="polaroid-frame" id="polaroid-frame">
             <span class="placeholder-text" id="placeholder">?</span>
             <img id="result-img" src="" alt="抽獎結果">
         </div>
-
         <button class="btn" id="draw-btn" onclick="executeDraw()">立即抽取拍立得</button>
 
         <div id="order-form">
             <h3 style="text-align:center;">✨ 抽到了！請填寫寄送資訊</h3>
-            <div class="form-group">
-                <label>收件人姓名</label>
-                <input type="text" id="name" placeholder="請輸入真實姓名">
-            </div>
-            <div class="form-group">
-                <label>聯絡電話</label>
-                <input type="tel" id="phone" placeholder="0912-345-678">
-            </div>
-            <div class="form-group">
-                <label>收件地址</label>
-                <input type="text" id="address" placeholder="請輸入詳細地址或店到店資訊">
-            </div>
+            <div class="form-group"><label>收件人姓名</label><input type="text" id="name"></div>
+            <div class="form-group"><label>聯絡電話</label><input type="tel" id="phone"></div>
+            <div class="form-group"><label>收件地址</label><input type="text" id="address"></div>
             <button class="btn" style="width:100%; background-color: var(--success-green);" onclick="submitOrder()">確認送出並付款</button>
         </div>
     </section>
@@ -251,33 +198,18 @@
         <div class="shop-grid">
             <div class="item-card">
                 <img src="image/item_1.jpg" alt="周邊 1">
-                <div class="item-info">
-                    <h3>校貓吊飾</h3>
-                    <p class="price">$350</p>
-                    <button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button>
-                </div>
+                <div class="item-info"><h3>校貓吊飾</h3><p class="price">$350</p><button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button></div>
             </div>
-
             <div class="item-card">
                 <img src="image/item_2.jpg" alt="周邊 2">
-                <div class="item-info">
-                    <h3>校貓T恤</h3>
-                    <p class="price">$120</p>
-                    <button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button>
-                </div>
+                <div class="item-info"><h3>校貓T恤</h3><p class="price">$120</p><button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button></div>
             </div>
-
             <div class="item-card">
                 <img src="image/item_3.jpg" alt="周邊 3">
-                <div class="item-info">
-                    <h3>校貓徽章</h3>
-                    <p class="price">$180</p>
-                    <button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button>
-                </div>
+                <div class="item-info"><h3>校貓徽章</h3><p class="price">$180</p><button class="btn" style="font-size: 0.9rem; padding: 10px 20px;">加入購物車</button></div>
             </div>
         </div>
     </section>
-
 </div>
 
 <footer>
@@ -286,6 +218,38 @@
 </footer>
 
 <script>
+    // --- 讀取進度條資料 ---
+    async function updateProgressBar() {
+        const targetAmount = 50000; // 你可以在這裡修改目標金額
+        document.getElementById('target-amount').innerText = targetAmount.toLocaleString();
+
+        try {
+            // 從 file/Already_Funds_Raised.txt 讀取
+            const response = await fetch('file/Already_Funds_Raised.txt');
+            if (!response.ok) throw new Error('無法讀取檔案');
+            
+            const data = await response.text();
+            const currentAmount = parseInt(data.trim()) || 0;
+
+            // 計算百分比
+            let percent = (currentAmount / targetAmount) * 100;
+            if (percent > 100) percent = 100; // 最高 100%
+
+            // 更新 UI
+            document.getElementById('current-amount').innerText = currentAmount.toLocaleString();
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('progress-percent').innerText = Math.floor(percent) + '%';
+
+        } catch (error) {
+            console.error("讀取募資金額失敗:", error);
+            document.getElementById('current-amount').innerText = "讀取中...";
+        }
+    }
+
+    // 初始化讀取
+    window.onload = updateProgressBar;
+
+    // --- 抽獎邏輯 ---
     function executeDraw() {
         const frame = document.getElementById('polaroid-frame');
         const placeholder = document.getElementById('placeholder');
@@ -293,7 +257,6 @@
         const drawBtn = document.getElementById('draw-btn');
         const orderForm = document.getElementById('order-form');
 
-        // 1. 禁用按鈕並開始動畫
         drawBtn.disabled = true;
         drawBtn.innerText = "抽取中...";
         placeholder.innerText = "⏳";
@@ -301,38 +264,26 @@
         orderForm.style.display = "none";
         resultImg.style.display = "none";
 
-        // 2. 隨機決定圖片 (1~4)
         const randomNum = Math.floor(Math.random() * 4) + 1;
         const resultPath = `image/cat_${randomNum}.jpg`;
 
-        // 3. 模擬網路延遲後顯示結果
         setTimeout(() => {
             frame.classList.remove('shaking');
             placeholder.style.display = "none";
-            
             resultImg.src = resultPath;
             resultImg.style.display = "block";
             frame.style.transform = "rotate(0deg) scale(1.1)";
-            
             drawBtn.innerText = "再抽一次";
             drawBtn.disabled = false;
-
-            // 4. 顯示表單並捲動到表單位置
             orderForm.style.display = "block";
-            setTimeout(() => {
-                orderForm.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-            
+            setTimeout(() => { orderForm.scrollIntoView({ behavior: 'smooth' }); }, 100);
         }, 1500);
     }
 
     function submitOrder() {
         const name = document.getElementById('name').value;
-        if(!name) {
-            alert("請填寫收件資訊喔！");
-            return;
-        }
-        alert("訂單已預約！請依照後續指示完成付款轉帳。感謝您對貓貓的支持！");
+        if(!name) { alert("請填寫收件資訊喔！"); return; }
+        alert("訂單已預約！感謝支持！");
     }
 </script>
 
