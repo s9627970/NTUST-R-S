@@ -36,6 +36,17 @@
             border-bottom: 2px solid var(--primary-peach);
         }
 
+        .nav-left {
+            margin-right: auto; 
+            display: flex; 
+            align-items: center;
+        }
+
+        .nav-right {
+            display: flex; 
+            align-items: center;
+        }
+
         .nav-btn {
             background-color: white;
             color: var(--accent-brown);
@@ -47,6 +58,7 @@
             transition: 0.3s;
             margin-left: 10px;
             font-size: 0.9rem;
+            white-space: nowrap; /* 避免按鈕文字斷行 */
         }
 
         .nav-btn:hover {
@@ -189,19 +201,70 @@
         .order-card { border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 15px; background: #fafafa; text-align: left; }
         .order-card-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
 
+        /* =========================================
+           手機版 RWD 樣式修復 (Max Width 768px)
+           ========================================= */
+        @media (max-width: 768px) {
+            .top-nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+            .nav-left {
+                margin-right: 0 !important;
+                justify-content: center;
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .nav-right {
+                flex-direction: column;
+                width: 100%;
+                justify-content: center;
+                gap: 10px;
+            }
+            .nav-btn {
+                margin-left: 0 !important;
+                margin: 4px;
+            }
+            .cart-icon-btn {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            #nav-user-controls {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+            #nav-user-controls span {
+                width: 100%;
+                text-align: center;
+                margin-right: 0 !important;
+                margin-bottom: 8px;
+            }
+            .lottery-action-group {
+                flex-direction: column;
+                align-items: center;
+            }
+            .lottery-action-group .btn {
+                width: 100%; /* 手機版改為滿版寬度 */
+                padding: 15px 20px; /* 縮小左右 padding 避免文字擠壓 */
+            }
+        }
     </style>
 </head>
 <body>
 
 <div class="top-nav">
-    <div style="margin-right: auto; display: flex; align-items: center;">
+    <div class="nav-left">
         <span style="font-weight: bold; color: var(--accent-brown);">🐾 NTUST 守護校貓</span>
-        <button id="admin-toggle-btn" class="nav-btn" style="display: none; margin-left: 15px; background-color: var(--accent-brown); color: white;" onclick="toggleAdminDashboard()">
+        <button id="admin-toggle-btn" class="nav-btn" style="display: none; background-color: var(--accent-brown); color: white;" onclick="toggleAdminDashboard()">
             ⚙️ 管理員後台
         </button>
     </div>
 
-    <div style="display: flex; align-items: center;">
+    <div class="nav-right">
         <div class="cart-icon-btn" onclick="window.openCartModal()" title="我的購物車">
             🛒<span class="cart-badge" id="cart-badge">0</span>
         </div>
@@ -420,25 +483,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 新增 Google 登入處理函式
     window.handleGoogleLogin = async () => {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
         try {
-            // 1. 先嘗試 Google 登入
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
-            // 2. 檢查此 Email 是否有其他登入方式（如密碼）
-            // 注意：這一步在某些 Firebase 版本中需要配合後台 "Link accounts" 開啟
             const methods = await fetchSignInMethodsForEmail(auth, user.email);
-            
             if (methods.includes('password')) {
                 console.log("此帳號已有密碼憑證，Firebase 已嘗試自動關連。");
             }
 
-            // 3. 確保 Firestore 資料同步
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
@@ -458,7 +515,6 @@
         }
     };
 
-    // --- 使用者 Profile 與 地址管理 ---
     window.userProfile = { address: null, phone: null, name: null };
 
     window.openAddressModal = () => {
@@ -505,7 +561,6 @@
         } catch(e) { console.warn("無法讀取使用者 Profile"); }
     };
 
-    // --- 個人訂單管理邏輯 ---
     window.openUserOrders = async () => {
         if (!auth.currentUser) return;
         document.getElementById('user-orders-modal').style.display = 'flex';
@@ -519,8 +574,6 @@
 
     window.fetchUserOrders = async () => {
         if (!auth.currentUser) return alert("請先登入");
-        
-        // 【修正點】：將原來的 'user-order-list' 改成和 HTML 一致的 'user-orders-container'
         const container = document.getElementById('user-orders-container'); 
         if (!container) return;
         
@@ -542,7 +595,6 @@
             let orders = [];
             snapshot.forEach(docSnap => orders.push({ id: docSnap.id, ...docSnap.data() }));
             
-            // 時間降冪排序
             orders.sort((a, b) => {
                 const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
                 const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
@@ -582,7 +634,6 @@
             container.innerHTML = html;
         } catch (e) {
             console.error("fetchUserOrders 錯誤:", e);
-            // 【優化】：捕捉常見的複合索引錯誤，提醒去 Console 點擊連結
             if (e.message.includes("index")) {
                 container.innerHTML = `<p style="color:red; line-height: 1.5;">載入失敗：需要建立 Firebase 複合索引。<br><br>👉 <b>請打開瀏覽器的 F12 開發者工具 (Console 標籤頁)，點擊裡面的 Firebase 連結來建立索引。</b> 建立後大約需要等待 3-5 分鐘即可正常顯示。</p>`;
             } else {
@@ -611,13 +662,11 @@
             if(!orderSnap.exists()) return alert("找不到訂單！");
             const orderData = orderSnap.data();
 
-            // 1. 取消原訂單
             await updateDoc(doc(db, "orders", orderId), {
                 status: "已取消",
                 updatedAt: serverTimestamp()
             });
 
-            // 2. 將商品加回購物車中
             orderData.items.forEach(orderItem => {
                 if (orderItem.type === 'merch') {
                     const existing = window.cartItems.find(i => i.type === 'merch' && i.name === orderItem.name);
@@ -631,13 +680,12 @@
             await window.saveCartData();
             window.renderCart();
             window.closeUserOrders();
-            window.openCartModal(); // 打開購物車讓使用者直接修改
+            window.openCartModal();
             alert("已將原訂單取消並將商品退回購物車，請於修改後重新結帳！");
 
         } catch(e) { alert("操作失敗: " + e.message); }
     };
 
-    // --- 購物車核心邏輯 ---
     window.cartItems = [];
 
     window.saveCartData = async () => {
@@ -762,7 +810,6 @@
         await window.saveCartData();
     };
 
-    // --- 結帳功能與地址檢查 ---
     window.checkoutCart = async () => {
         if (window.cartItems.length === 0) return alert("購物車是空的喔！");
         if (!auth.currentUser) {
@@ -801,7 +848,6 @@
         }
     };
 
-    // --- 會員系統 ---
     window.handleLogin = async () => {
         const email = document.getElementById('login-user').value;
         const pass = document.getElementById('login-pass').value;
@@ -818,13 +864,11 @@
         location.reload(); 
     };
 
-    // --- 監聽登入狀態 ---
     onAuthStateChanged(auth, async (user) => {
         const userControls = document.getElementById('nav-user-controls');
         const adminBtn = document.getElementById('admin-toggle-btn');
 
         if (user) {
-            // 已登入：新增「我的訂單」按鈕
             userControls.innerHTML = `
                 <span style="margin-right:10px; font-size:0.85rem; color:#888;">👋 ${user.email}</span>
                 <button class="nav-btn" style="border-color: #64b5f6; color: #64b5f6;" onclick="window.openUserOrders()">📋 我的訂單</button>
@@ -846,7 +890,6 @@
 
     window.loadCartData();
 
-    // --- 後台：抓取所有訂單 ---
     window.fetchAllOrders = async () => {
         const adminOrderList = document.getElementById('admin-order-list');
         if (!adminOrderList) return;
@@ -854,7 +897,6 @@
         adminOrderList.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">資料載入中...</td></tr>';
         
         try {
-            // 抓取所有訂單（僅限管理員 email 帳號執行）
             const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             
@@ -863,7 +905,6 @@
                 const data = doc.data();
                 const ship = data.shippingInfo || {};
                 
-                // 加入安全檢查，防止 items 或 details 為空時出錯
                 let contentStrs = (data.items || []).map(item => {
                     if (item.type === 'polaroid') {
                         const ids = item.details?.ids ? item.details.ids.join(',') : '未知';
@@ -876,7 +917,6 @@
                 let statusText = data.status || '未知';
                 let statusColor = statusText === '待付款' ? '#e57373' : (statusText === '已取消' ? '#999' : 'var(--success-green)');
                 
-                // 【優化】後台也顯示訂單狀態
                 html += `
                     <tr style="background: white; border-bottom: 1px solid #eee;">
                         <td style="padding: 15px;">
