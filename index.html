@@ -26,10 +26,60 @@
             overflow-x: hidden;
         }
 
+        /* --- 頂部導覽列 --- */
+        .top-nav {
+            background-color: var(--secondary-cream);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-peach);
+        }
+
+        .nav-btn {
+            background-color: white;
+            color: var(--accent-brown);
+            border: 2px solid var(--primary-peach);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-left: 10px;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--primary-peach);
+            color: white;
+        }
+
+        /* 購物車按鈕樣式 */
+        .cart-icon-btn {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            transition: 0.3s;
+        }
+        .cart-icon-btn:hover { transform: scale(1.1); }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background-color: #e57373;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
         /* --- 頁首與進度條 --- */
         header {
             background-color: var(--soft-white);
-            padding: 40px 20px;
+            padding: 30px 20px 40px;
             text-align: center;
             border-bottom: 6px dashed var(--primary-peach);
         }
@@ -45,105 +95,42 @@
             margin: 20px auto 0 auto;
             padding: 0 20px;
         }
-
-        .progress-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        .progress-bar-bg {
-            width: 100%;
-            height: 20px;
-            background-color: var(--progress-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #ffb7b2, #ff9a93);
-            transition: width 1.5s ease-in-out;
-        }
+        .progress-labels { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+        .progress-bar-bg { width: 100%; height: 20px; background-color: var(--progress-bg); border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffb7b2, #ff9a93); transition: width 1.5s ease-in-out; }
 
         /* --- 主容器 --- */
-        .container {
-            max-width: 1100px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
 
         /* --- 抽獎區塊 --- */
         .lottery-box {
-            background: var(--soft-white);
-            border-radius: 40px;
-            padding: 40px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.05);
-            text-align: center;
-            margin-bottom: 60px;
+            background: var(--soft-white); border-radius: 40px; padding: 40px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.05); text-align: center; margin-bottom: 60px;
         }
 
         .polaroid-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            min-height: 200px;
-            margin: 30px 0;
-            perspective: 1000px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;
+            min-height: 200px; margin: 30px 0; perspective: 1000px;
         }
 
-        /* 拍立得框架：隨圖片比例自動調整 */
         .polaroid-frame {
-            width: auto;
-            height: auto;
-            max-width: 220px; /* 限制寬度避免圖片過大 */
-            background: white;
-            padding: 12px; 
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-            border: 1px solid #eee;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            opacity: 0;
-            transform: translateY(20px) rotate(0deg);
-            display: inline-block;
+            width: auto; height: auto; max-width: 220px;
+            background: white; padding: 12px; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            border: 1px solid #eee; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0; transform: translateY(20px) rotate(0deg); display: inline-block;
         }
 
-        .polaroid-frame img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
+        .polaroid-frame img { max-width: 100%; height: auto; display: block; }
+        .polaroid-frame.show { opacity: 1; transform: translateY(0) rotate(calc(var(--r) * 1deg)); }
+        .polaroid-frame:hover { transform: scale(1.1) rotate(0deg) !important; z-index: 10; }
 
-        .polaroid-frame.show {
-            opacity: 1;
-            transform: translateY(0) rotate(calc(var(--r) * 1deg));
-        }
-
-        .polaroid-frame:hover {
-            transform: scale(1.1) rotate(0deg) !important;
-            z-index: 10;
-        }
-
-        /* 震動動畫 */
-        .shaking-box {
-            animation: box-shake 0.2s infinite;
-        }
-        @keyframes box-shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(3px); }
-            75% { transform: translateX(-3px); }
-            100% { transform: translateX(0); }
-        }
+        .shaking-box { animation: box-shake 0.2s infinite; }
+        @keyframes box-shake { 0% { transform: translateX(0); } 25% { transform: translateX(3px); } 75% { transform: translateX(-3px); } 100% { transform: translateX(0); } }
 
         /* --- 按鈕與表單 --- */
         .btn {
-            background-color: var(--primary-peach);
-            color: white; border: none; padding: 15px 40px;
-            border-radius: 50px; font-size: 1.1rem; font-weight: bold;
-            cursor: pointer; transition: 0.3s;
+            background-color: var(--primary-peach); color: white; border: none; padding: 15px 40px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
             box-shadow: 0 4px 10px rgba(255,183,178,0.4);
         }
         .btn:hover { background-color: #ff9a93; transform: scale(1.05); }
@@ -164,9 +151,105 @@
         .price { color: #e57373; font-weight: bold; font-size: 1.2rem; margin: 10px 0; }
 
         footer { text-align: center; padding: 60px 20px; color: #bbb; font-size: 0.9rem; }
+
+        /* --- 彈出視窗 (Modal) 泛用設定 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); display: none;
+            justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(3px);
+        }
+        .modal-content {
+            background: var(--soft-white); padding: 40px; border-radius: 20px;
+            width: 90%; max-width: 400px; position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .close-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 1.5rem;
+            color: #aaa; cursor: pointer; transition: 0.2s;
+        }
+        .close-btn:hover { color: var(--accent-brown); }
+
+        /* --- 會員表單 --- */
+        .auth-form { display: none; text-align: left; }
+        .auth-form.active { display: block; }
+        .auth-form h2 { text-align: center; color: #d88a8a; margin-top: 0; margin-bottom: 20px; }
+        .auth-input-group { margin-bottom: 15px; }
+        .auth-input-group input { width: 100%; padding: 12px; border: 2px solid var(--secondary-cream); border-radius: 8px; outline: none; box-sizing: border-box; background: #fafafa; transition: border 0.3s; }
+        .auth-input-group input:focus { border-color: var(--primary-peach); background: white; }
+        .auth-switch { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #888; }
+        .auth-switch a { color: #e57373; text-decoration: none; font-weight: bold; }
+        .auth-switch a:hover { text-decoration: underline; }
+
+        /* --- 購物車列表樣式 --- */
+        .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 0; text-align: left; }
+        .cart-item-info { flex: 1; }
+        .cart-item-title { font-weight: bold; color: var(--accent-brown); margin-bottom: 5px; }
+        .cart-item-price { color: #e57373; font-size: 0.9rem; }
+        .cart-qty-controls { display: flex; align-items: center; gap: 10px; }
+        .qty-btn { background: #f0f0f0; border: none; width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-weight: bold; color: #555; transition: 0.2s; }
+        .qty-btn:hover { background: #e0e0e0; }
+
     </style>
 </head>
 <body>
+
+<div class="top-nav">
+    <div style="margin-right: auto; display: flex; align-items: center;">
+        <span style="font-weight: bold; color: var(--accent-brown);">🐾 NTUST 守護校貓</span>
+        <button id="admin-toggle-btn" class="nav-btn" style="display: none; margin-left: 15px; background-color: var(--accent-brown); color: white;" onclick="toggleAdminDashboard()">
+            ⚙️ 管理員後台
+        </button>
+    </div>
+
+    <div style="display: flex; align-items: center;">
+        <div class="cart-icon-btn" onclick="window.openCartModal()" title="我的購物車">
+            🛒<span class="cart-badge" id="cart-badge">0</span>
+        </div>
+
+        <div id="nav-user-controls">
+            </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="auth-modal" onclick="closeAuthModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()"> <span class="close-btn" onclick="closeAuthModal()">&times;</span>
+        
+        <div id="login-section" class="auth-form active">
+            <h2>會員登入</h2>
+            <div class="auth-input-group"><input type="text" id="login-user" placeholder="帳號 / Email"></div>
+            <div class="auth-input-group"><input type="password" id="login-pass" placeholder="密碼"></div>
+            <button class="btn" style="width: 100%; padding: 12px;" onclick="window.handleLogin()">登入</button>
+            <div class="auth-switch">還沒有帳號？ <a href="#" onclick="switchAuth('register'); return false;">立即註冊</a></div>
+        </div>
+
+        <div id="register-section" class="auth-form">
+            <h2>註冊新帳號</h2>
+            <div class="auth-input-group"><input type="text" id="reg-user" placeholder="設定帳號 (Email)"></div>
+            <div class="auth-input-group"><input type="password" id="reg-pass" placeholder="設定密碼"></div>
+            <div class="auth-input-group"><input type="password" id="reg-pass-confirm" placeholder="確認密碼"></div>
+            <button class="btn" style="width: 100%; padding: 12px; background-color: var(--success-green);" onclick="window.handleRegister()">註冊</button>
+            <div class="auth-switch">已經有帳號了？ <a href="#" onclick="switchAuth('login'); return false;">返回登入</a></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="cart-modal" onclick="window.closeCartModal(event)">
+    <div class="modal-content" style="max-width: 500px;" onclick="event.stopPropagation()"> 
+        <span class="close-btn" onclick="window.closeCartModal()">&times;</span>
+        <h2 style="color: var(--accent-brown); margin-top: 0;">🛒 我的購物車</h2>
+        
+        <div id="cart-items-container" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px;">
+            </div>
+        
+        <div style="text-align: right; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; border-top: 2px solid var(--primary-peach); padding-top: 15px;">
+            總計金額：<span style="color: #e57373;">$</span><span id="cart-total" style="color: #e57373;">0</span>
+        </div>
+        
+        <button class="btn" style="width: 100%; background-color: var(--success-green);" onclick="window.checkoutCart()">前往付款</button>
+    </div>
+</div>
 
 <header>
     <h1>🐾 台科大校貓校狗守護計畫</h1>
@@ -187,7 +270,7 @@
     
     <section class="lottery-box" id="lottery-section">
         <h2 style="color:#d88a8a">📸 拍立得暖心五連抽</h2>
-        <p>支持計畫即可獲得隨機五張校貓生活拍立得！</p>
+        <p>支持計畫即可獲得隨機五張校貓生活拍立得！(贊助價 $500)</p>
         
         <div class="polaroid-gallery" id="gallery">
             <div style="color:#ddd; margin-top: 50px;">點擊下方按鈕開始抽獎</div>
@@ -196,131 +279,504 @@
         <button class="btn" id="draw-btn" onclick="executeDraw()">開始抽取 (五連抽)</button>
 
         <div id="order-form">
-            <h3 style="text-align:center;">🎉 這組照片太讚了！請填寫領取資訊</h3>
+            <h3 style="text-align:center;">🎉 這組照片太讚了！</h3>
+            <p style="text-align:center; font-size:0.9rem; color:#666;">填寫收件資訊並加入購物車，結帳後為您寄出。</p>
             <div class="form-group"><label>收件人姓名</label><input type="text" id="name"></div>
             <div class="form-group"><label>聯絡電話</label><input type="tel" id="phone"></div>
             <div class="form-group"><label>收件地址</label><input type="text" id="address"></div>
-            <button class="btn" style="width:100%; background-color: var(--success-green);" onclick="submitOrder()">確認並前往付款</button>
+            <button class="btn" style="width:100%; background-color: var(--success-green);" onclick="window.addPolaroidToCart()">確認並加入購物車</button>
         </div>
     </section>
 
     <section>
         <h2 style="text-align:center; margin-bottom:40px;">🎨 校貓周邊認購</h2>
         <div class="shop-grid">
-            <div class="item-card">
-                <img src="image/item_1.jpg" alt="周邊">
-                <h3>校貓吊飾</h3>
-                <p class="price">$350</p>
-                <button class="btn" style="padding:8px 20px; font-size:0.9rem;">加入購物車</button>
-            </div>
-            <div class="item-card">
-                <img src="image/item_2.jpg" alt="周邊">
-                <h3>校貓T恤</h3>
-                <p class="price">$120</p>
-                <button class="btn" style="padding:8px 20px; font-size:0.9rem;">加入購物車</button>
-            </div>
-            <div class="item-card">
-                <img src="image/item_3.jpg" alt="周邊">
-                <h3>校貓徽章</h3>
-                <p class="price">$180</p>
-                <button class="btn" style="padding:8px 20px; font-size:0.9rem;">加入購物車</button>
-            </div>
+            <div class="item-card"><img src="image/item_1.jpg" alt="周邊"><h3>校貓吊飾</h3><p class="price">$350</p><button class="btn" style="padding:8px 20px; font-size:0.9rem;" onclick="window.addMerchToCart('校貓吊飾', 350)">加入購物車</button></div>
+            <div class="item-card"><img src="image/item_2.jpg" alt="周邊"><h3>校貓T恤</h3><p class="price">$120</p><button class="btn" style="padding:8px 20px; font-size:0.9rem;" onclick="window.addMerchToCart('校貓T恤', 120)">加入購物車</button></div>
+            <div class="item-card"><img src="image/item_3.jpg" alt="周邊"><h3>校貓徽章</h3><p class="price">$180</p><button class="btn" style="padding:8px 20px; font-size:0.9rem;" onclick="window.addMerchToCart('校貓徽章', 180)">加入購物車</button></div>
         </div>
     </section>
 </div>
 
-<footer>
-    <p>© 2026 台科根與芽動保社 NTUST Roots&Shoots</p>
-</footer>
+<footer><p>© 2026 台科根與芽動保社 NTUST Roots&Shoots</p></footer>
 
 <script>
-    // --- 1. 讀取募資進度 ---
-    async function updateProgressBar() {
-        const target = 50000;
-        try {
-            // 注意：需透過 Live Server 或伺服器環境開啟，fetch 才能讀取本地檔案
-            const response = await fetch('file/Already_Funds_Raised.txt');
-            const text = await response.text();
-            const current = parseInt(text.trim()) || 0;
-            
-            const percent = Math.min((current / target) * 100, 100);
-            
-            document.getElementById('current-amount').innerText = current.toLocaleString();
-            document.getElementById('progress-fill').style.width = percent + '%';
-        } catch (e) {
-            console.warn("無法讀取金額檔案，請確認 file 資料夾路徑或伺服器環境。");
+    // --- 介面控制 ---
+    function toggleAdminDashboard() {
+        const adminOverlay = document.getElementById('admin-dashboard-overlay');
+        if (adminOverlay.style.display === 'none' || adminOverlay.style.display === '') {
+            adminOverlay.style.display = 'block';
+            document.body.style.overflow = 'hidden'; 
+            if (typeof window.fetchAllOrders === 'function') window.fetchAllOrders();
+        } else {
+            adminOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
     }
 
-    // --- 2. 五連抽邏輯 (不重複) ---
+    async function updateProgressBar() {
+        const target = 50000;
+        try {
+            const response = await fetch('file/Already_Funds_Raised.txt');
+            const text = await response.text();
+            const current = parseInt(text.trim()) || 0;
+            const percent = Math.min((current / target) * 100, 100);
+            document.getElementById('current-amount').innerText = current.toLocaleString();
+            document.getElementById('progress-fill').style.width = percent + '%';
+        } catch (e) { console.warn("無法讀取金額檔案"); }
+    }
+    window.onload = updateProgressBar;
+
+    // --- 抽卡邏輯 ---
+    let currentDrawIds = []; 
     function executeDraw() {
         const gallery = document.getElementById('gallery');
         const drawBtn = document.getElementById('draw-btn');
         const orderForm = document.getElementById('order-form');
         const lotterySection = document.getElementById('lottery-section');
 
-        // 狀態重設
-        drawBtn.disabled = true;
-        drawBtn.innerText = "正在洗照片...";
-        gallery.innerHTML = ''; 
-        orderForm.style.display = "none";
+        drawBtn.disabled = true; drawBtn.innerText = "正在洗照片...";
+        gallery.innerHTML = ''; orderForm.style.display = "none";
         lotterySection.classList.add('shaking-box');
+        currentDrawIds = []; 
 
-        // 圖片池 (假設你有 cat_1 ~ cat_4.jpg)
-        // 若有 cat_5.jpg 請手動加入 5
-        let imagePool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; // 假設有 11 張照片可抽
-
-        // Fisher-Yates 洗牌演算法
+        let imagePool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; 
         for (let i = imagePool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [imagePool[i], imagePool[j]] = [imagePool[j], imagePool[i]];
         }
-
-        // 決定抽幾張 (池子大小或最多 5 張)
         const drawCount = Math.min(imagePool.length, 5);
 
         setTimeout(() => {
             lotterySection.classList.remove('shaking-box');
-            drawBtn.disabled = false;
-            drawBtn.innerText = "不滿意？重新抽取";
+            drawBtn.disabled = false; drawBtn.innerText = "不滿意？重新抽取";
 
             for (let i = 0; i < drawCount; i++) {
                 const photoId = imagePool[i];
-                const randomRotate = Math.floor(Math.random() * 20) - 10; // -10 到 10 度隨機旋轉
-                
+                currentDrawIds.push(photoId); 
+                const randomRotate = Math.floor(Math.random() * 20) - 10;
                 const frame = document.createElement('div');
                 frame.className = 'polaroid-frame';
                 frame.style.setProperty('--r', randomRotate);
-                
-                // 僅包含圖片，白框隨圖片尺寸自動適應
                 frame.innerHTML = `<img src="image/cat_${photoId}.jpg" alt="校貓照片">`;
-                
                 gallery.appendChild(frame);
-
-                // 依序彈出效果
-                setTimeout(() => {
-                    frame.classList.add('show');
-                }, i * 150);
+                setTimeout(() => { frame.classList.add('show'); }, i * 150);
             }
 
-            // 抽完後顯示填單區塊
             setTimeout(() => {
                 orderForm.style.display = "block";
                 orderForm.scrollIntoView({ behavior: 'smooth' });
             }, 800);
-
         }, 1200);
     }
 
-    function submitOrder() {
-        const name = document.getElementById('name').value;
-        if(!name) { alert("請填寫收件姓名喔！"); return; }
-        alert("訂單已預約！感謝您的暖心支持！");
+    // --- 會員 Modal 邏輯 ---
+    const authModal = document.getElementById('auth-modal');
+    function openAuthModal(type) {
+        authModal.style.display = 'flex';
+        switchAuth(type); 
     }
-
-    // 初始化
-    window.onload = updateProgressBar;
+    function closeAuthModal(event) {
+        if(event && event.target !== authModal) return;
+        authModal.style.display = 'none';
+        document.querySelectorAll('.auth-input-group input').forEach(input => input.value = '');
+    }
+    function switchAuth(type) {
+        if (type === 'login') {
+            document.getElementById('login-section').classList.add('active');
+            document.getElementById('register-section').classList.remove('active');
+        } else {
+            document.getElementById('login-section').classList.remove('active');
+            document.getElementById('register-section').classList.add('active');
+        }
+    }
 </script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCLguQGCeZZ8LN18HUME2WMOllV_Uqi2Lc",
+        authDomain: "ntust-r-s.firebaseapp.com",
+        projectId: "ntust-r-s",
+        storageBucket: "ntust-r-s.firebasestorage.app",
+        messagingSenderId: "260109831720",
+        appId: "1:260109831720:web:115e933a3c4983211bef1d",
+        measurementId: "G-FBZGC5DNK7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // --- 購物車核心邏輯 ---
+    window.cartItems = [];
+
+    // 1. 同步儲存至 Firebase 或 LocalStorage
+    window.saveCartData = async () => {
+        if (!window.cartItems) return; // 確保購物車變數存在
+
+        if (auth.currentUser) {
+            try {
+                const userCartRef = doc(db, "carts", auth.currentUser.uid);
+                await setDoc(userCartRef, { 
+                    items: window.cartItems,
+                    lastUpdated: serverTimestamp() // 加上時間戳記方便追蹤
+                });
+                console.log("購物車已成功同步至 Firebase");
+            } catch (e) {
+                console.error("雲端購物車儲存失敗：", e);
+                // 可以在這裡通知使用者
+            }
+        } else {
+            localStorage.setItem('tempCart', JSON.stringify(window.cartItems));
+            console.log("尚未登入，已暫存至本地瀏覽器");
+        }
+    };
+
+    // 2. 從 Firebase 載入資料並處理本機合併 (修復 Race Condition 錯誤)
+    window.loadCartData = async () => {
+        if (!auth.currentUser) return; // 安全防護，若未登入不應觸發載入雲端
+        
+        try {
+            const localCartStr = localStorage.getItem('tempCart');
+            const localCart = localCartStr ? JSON.parse(localCartStr) : [];
+            const docSnap = await getDoc(doc(db, "carts", auth.currentUser.uid));
+            
+            let cloudItems = [];
+            if (docSnap.exists()) {
+                cloudItems = docSnap.data().items || [];
+            }
+
+            let needsSaveToCloud = false;
+
+            // 如果有尚未登入時存的暫存商品，合併至雲端並清除本機暫存
+            if (localCart.length > 0) {
+                localCart.forEach(localItem => {
+                    if (localItem.type === 'merch') {
+                        const existing = cloudItems.find(i => i.type === 'merch' && i.name === localItem.name);
+                        if (existing) {
+                            existing.qty += localItem.qty;
+                        } else {
+                            cloudItems.push(localItem);
+                        }
+                    } else {
+                        cloudItems.push(localItem); // 拍立得直接加入
+                    }
+                });
+                localStorage.removeItem('tempCart');
+                needsSaveToCloud = true;
+            }
+
+            // 更新當前畫面購物車數據
+            window.cartItems = cloudItems;
+
+            // 若有合併動作或是初次建立帳號(文檔不存在)，強制寫入 Firebase 一次
+            if (needsSaveToCloud || !docSnap.exists()) {
+                await window.saveCartData();
+            }
+            
+        } catch (e) { 
+            console.error("雲端購物車讀取失敗：", e); 
+        }
+        
+        window.renderCart();
+    };
+
+    // 3. 更新購物車 UI
+    window.renderCart = () => {
+        const container = document.getElementById('cart-items-container');
+        const totalEl = document.getElementById('cart-total');
+        const badgeEl = document.getElementById('cart-badge');
+        
+        container.innerHTML = '';
+        let total = 0;
+        let totalQty = 0;
+
+        if (window.cartItems.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding: 20px 0;">購物車空空的喔，去逛逛吧！</p>';
+        } else {
+            window.cartItems.forEach((item, index) => {
+                total += item.price * item.qty;
+                totalQty += item.qty;
+                
+                const itemName = item.type === 'polaroid' ? `📸 拍立得五連抽 <br><small style="color:#aaa; font-size:0.8rem;">(包含收件資訊)</small>` : item.name;
+                
+                container.innerHTML += `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-title">${itemName}</div>
+                            <div class="cart-item-price">$${item.price}</div>
+                        </div>
+                        <div class="cart-qty-controls">
+                            <button class="qty-btn" onclick="window.changeQty(${index}, -1)">-</button>
+                            <span style="width: 20px; text-align: center; font-weight: bold;">${item.qty}</span>
+                            <button class="qty-btn" onclick="window.changeQty(${index}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        totalEl.innerText = total.toLocaleString();
+        badgeEl.innerText = totalQty;
+        badgeEl.style.display = totalQty > 0 ? 'inline-block' : 'none';
+    };
+
+    // 4. 數量增減
+    window.changeQty = async (index, delta) => {
+        window.cartItems[index].qty += delta;
+        if (window.cartItems[index].qty <= 0) {
+            window.cartItems.splice(index, 1);
+        }
+        window.renderCart();
+        await window.saveCartData();
+    };
+
+    // 5. 購物車 Modal 控制
+    window.openCartModal = () => {
+        document.getElementById('cart-modal').style.display = 'flex';
+        window.renderCart();
+    };
+    window.closeCartModal = (event) => {
+        if(event && event.target !== document.getElementById('cart-modal')) return;
+        document.getElementById('cart-modal').style.display = 'none';
+    };
+
+    // --- 加入購物車操作 ---
+    window.addMerchToCart = async (name, price) => {
+        const existing = window.cartItems.find(i => i.type === 'merch' && i.name === name);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            window.cartItems.push({ type: 'merch', name, price, qty: 1 });
+        }
+        alert(`已將「${name}」加入購物車！`);
+        window.renderCart();
+        await window.saveCartData();
+    };
+
+    window.addPolaroidToCart = async () => {
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const address = document.getElementById('address').value;
+
+        if (!name || !phone || !address) return alert("請填寫完整的收件資訊");
+        if (typeof currentDrawIds === 'undefined' || currentDrawIds.length === 0) return alert("請先抽取拍立得！");
+
+        window.cartItems.push({
+            type: 'polaroid',
+            name: '拍立得五連抽',
+            price: 500,
+            qty: 1,
+            details: { customer_name: name, customer_phone: phone, customer_address: address, ids: currentDrawIds }
+        });
+
+        alert("拍立得套組已加入購物車！");
+        
+        document.getElementById('name').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('address').value = '';
+        document.getElementById('order-form').style.display = 'none';
+
+        window.renderCart();
+        await window.saveCartData();
+    };
+
+    // --- 結帳功能 ---
+    window.checkoutCart = async () => {
+        if (window.cartItems.length === 0) return alert("購物車是空的喔！");
+        if (!auth.currentUser) {
+            alert("結帳前請先登入或註冊會員！");
+            window.closeCartModal();
+            openAuthModal('login');
+            return;
+        }
+
+        try {
+            const totalAmount = window.cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            
+            await addDoc(collection(db, "orders"), {
+                uid: auth.currentUser.uid,
+                email: auth.currentUser.email,
+                items: window.cartItems,
+                status: "待付款",
+                timestamp: new Date(),
+                totalAmount: totalAmount
+            });
+            
+            alert("訂單送出成功！即將轉往付款流程。");
+            
+            window.cartItems = [];
+            await window.saveCartData();
+            window.renderCart();
+            window.closeCartModal();
+            
+        } catch (e) { 
+            console.error(e);
+            alert("結帳失敗：" + e.message);
+        }
+    };
+
+    // --- 會員系統 ---
+    window.handleRegister = async () => {
+        const email = document.getElementById('reg-user').value; 
+        const pass = document.getElementById('reg-pass').value;
+        const confirm = document.getElementById('reg-pass-confirm').value;
+        if (pass !== confirm) return alert("兩次密碼輸入不一致！");
+        try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            alert("註冊成功！");
+        } catch (e) { alert("註冊失敗：" + e.message); }
+    };
+
+    window.handleLogin = async () => {
+        const email = document.getElementById('login-user').value;
+        const pass = document.getElementById('login-pass').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            alert("歡迎回來！");
+            closeAuthModal();
+        } catch (e) { alert("登入失敗：" + e.message); }
+    };
+
+    // 修復登出造成狀態未即時變更的問題
+    window.handleLogout = async () => {
+        await signOut(auth);
+        
+        // 即時清空購物車，不依賴 reload
+        window.cartItems = [];
+        localStorage.removeItem('tempCart');
+        window.renderCart();
+        
+        alert("已登出");
+    };
+
+    // --- 初始化流程防閃爍機制 ---
+    // 網頁載入時若 Firebase 尚未準備好，先從 LocalStorage 提取渲染一次
+    window.cartItems = JSON.parse(localStorage.getItem('tempCart') || '[]');
+    window.renderCart();
+
+    // --- 監聽登入狀態 (統一樞紐) ---
+    onAuthStateChanged(auth, async (user) => {
+        const userControls = document.getElementById('nav-user-controls');
+        const adminBtn = document.getElementById('admin-toggle-btn');
+
+        if (user) {
+            userControls.innerHTML = `
+                <span style="margin-right:15px; font-size:0.9rem;">👋 ${user.email}</span>
+                <button class="nav-btn" onclick="window.handleLogout()">登出</button>
+            `;
+            if (user.email === 's9627970@gmail.com') {
+                adminBtn.style.display = 'inline-block';
+            } else {
+                adminBtn.style.display = 'none';
+            }
+            
+            // 使用者登入後，強制覆蓋並載入該使用者的雲端購物車
+            await window.loadCartData();
+        } else {
+            userControls.innerHTML = `
+                <button class="nav-btn" onclick="openAuthModal('login')">會員登入</button>
+                <button class="nav-btn" onclick="openAuthModal('register')">註冊帳號</button>
+            `;
+            adminBtn.style.display = 'none';
+            
+            // 未登入或是已登出，切換為本機模式
+            window.cartItems = JSON.parse(localStorage.getItem('tempCart') || '[]');
+            window.renderCart();
+        }
+    });
+
+    // --- 後台：抓取所有訂單 ---
+    window.fetchAllOrders = async () => {
+        const adminOrderList = document.getElementById('admin-order-list');
+        if (!adminOrderList) return;
+        
+        adminOrderList.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">資料載入中...</td></tr>';
+        
+        try {
+            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            let html = '';
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const itemsArray = data.items || [];
+                
+                let name = '-', phone = '-', address = '-';
+                const polaroidItem = itemsArray.find(i => i.type === 'polaroid');
+                if (polaroidItem && polaroidItem.details) {
+                    name = polaroidItem.details.customer_name || '-';
+                    phone = polaroidItem.details.customer_phone || '-';
+                    address = polaroidItem.details.customer_address || '-';
+                }
+
+                let contentStrs = [];
+                itemsArray.forEach(item => {
+                    if (item.type === 'polaroid') {
+                        contentStrs.push(`拍立得 [${item.details.ids.join(',')}] x${item.qty}`);
+                    } else {
+                        contentStrs.push(`${item.name} x${item.qty}`);
+                    }
+                });
+                const finalContent = contentStrs.join(' <br> ');
+
+                let timeString = '未知時間';
+                if (data.timestamp && typeof data.timestamp.toDate === 'function') {
+                    timeString = data.timestamp.toDate().toLocaleString();
+                }
+
+                html += `
+                    <tr style="background: white; transition: 0.3s; font-size: 0.9rem;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='white'">
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${timeString}<br><small style="color:#888;">${data.email}</small></td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${name}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${phone}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${address}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee; line-height: 1.5;">${finalContent} <br><strong style="color:#e57373;">總計: $${data.totalAmount || 0}</strong></td>
+                    </tr>
+                `;
+            });
+            
+            if (html === '') {
+                adminOrderList.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">目前尚無訂單資料</td></tr>';
+            } else {
+                adminOrderList.innerHTML = html;
+            }
+            
+        } catch (error) {
+            console.error("抓取訂單失敗：", error);
+            adminOrderList.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:20px;">讀取失敗：${error.message}</td></tr>`;
+        }
+    };
+</script>
+
+<div id="admin-dashboard-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fffaf5; z-index: 2000; overflow-y: auto; padding: 40px 20px;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-peach); padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="color: var(--accent-brown); margin: 0;">🐾 訂單管理後台</h1>
+            <button class="nav-btn" onclick="toggleAdminDashboard()" style="background: var(--accent-brown); color: white;">關閉並返回首頁</button>
+        </div>
+
+        <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--secondary-cream); text-align: left;">
+                        <th style="padding: 15px; border-bottom: 2px solid #eee; min-width: 150px;">訂購時間/帳號</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">收件人</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">電話</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">地址</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">購買內容</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-order-list">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
