@@ -136,14 +136,6 @@
         .btn:hover { background-color: #ff9a93; transform: scale(1.05); }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        #order-form {
-            max-width: 500px; margin: 30px auto 0 auto; text-align: left;
-            display: none; background: var(--secondary-cream); padding: 30px; border-radius: 20px;
-        }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input { width: 100%; padding: 10px; border-radius: 8px; border: 2px solid white; outline: none; box-sizing: border-box; }
-
         /* --- 商城區塊 --- */
         .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
         .item-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.03); text-align: center; padding-bottom: 20px; transition: 0.3s; }
@@ -191,6 +183,14 @@
         .qty-btn { background: #f0f0f0; border: none; width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-weight: bold; color: #555; transition: 0.2s; }
         .qty-btn:hover { background: #e0e0e0; }
 
+        /* 新增：按鈕並列樣式 */
+        .lottery-action-group {
+            display: none;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 <body>
@@ -209,7 +209,21 @@
         </div>
 
         <div id="nav-user-controls">
-            </div>
+            <button class="nav-btn" onclick="openAuthModal('login')">會員登入</button>
+            <button class="nav-btn" onclick="openAuthModal('register')">註冊帳號</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="address-modal" onclick="window.closeAddressModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="close-btn" onclick="window.closeAddressModal()">&times;</span>
+        <h2 style="color: var(--accent-brown);">📦 設定寄送地址</h2>
+        <p style="font-size: 0.9rem; color: #888; margin-bottom: 20px;">此資訊將用於商品與拍立得寄送</p>
+        <div class="auth-input-group"><input type="text" id="addr-name" placeholder="收件人姓名"></div>
+        <div class="auth-input-group"><input type="tel" id="addr-phone" placeholder="聯絡電話"></div>
+        <div class="auth-input-group"><input type="text" id="addr-full" placeholder="完整收件地址"></div>
+        <button class="btn" style="width: 100%;" onclick="window.saveShippingAddress()">儲存地址</button>
     </div>
 </div>
 
@@ -276,15 +290,13 @@
             <div style="color:#ddd; margin-top: 50px;">點擊下方按鈕開始抽獎</div>
         </div>
 
-        <button class="btn" id="draw-btn" onclick="executeDraw()">開始抽取 (五連抽)</button>
+        <div id="initial-draw-container">
+            <button class="btn" id="draw-btn" onclick="executeDraw()">開始抽取 (五連抽)</button>
+        </div>
 
-        <div id="order-form">
-            <h3 style="text-align:center;">🎉 這組照片太讚了！</h3>
-            <p style="text-align:center; font-size:0.9rem; color:#666;">填寫收件資訊並加入購物車，結帳後為您寄出。</p>
-            <div class="form-group"><label>收件人姓名</label><input type="text" id="name"></div>
-            <div class="form-group"><label>聯絡電話</label><input type="tel" id="phone"></div>
-            <div class="form-group"><label>收件地址</label><input type="text" id="address"></div>
-            <button class="btn" style="width:100%; background-color: var(--success-green);" onclick="window.addPolaroidToCart()">確認並加入購物車</button>
+        <div id="draw-action-container" class="lottery-action-group">
+            <button class="btn" style="background-color: #aaa;" onclick="executeDraw()">不滿意？重新抽取</button>
+            <button class="btn" style="background-color: var(--success-green);" onclick="window.addPolaroidToCart()">確認並加入購物車</button>
         </div>
     </section>
 
@@ -332,11 +344,13 @@
     function executeDraw() {
         const gallery = document.getElementById('gallery');
         const drawBtn = document.getElementById('draw-btn');
-        const orderForm = document.getElementById('order-form');
+        const initialContainer = document.getElementById('initial-draw-container');
+        const actionContainer = document.getElementById('draw-action-container');
         const lotterySection = document.getElementById('lottery-section');
 
         drawBtn.disabled = true; drawBtn.innerText = "正在洗照片...";
-        gallery.innerHTML = ''; orderForm.style.display = "none";
+        gallery.innerHTML = ''; 
+        actionContainer.style.display = "none";
         lotterySection.classList.add('shaking-box');
         currentDrawIds = []; 
 
@@ -349,7 +363,9 @@
 
         setTimeout(() => {
             lotterySection.classList.remove('shaking-box');
-            drawBtn.disabled = false; drawBtn.innerText = "不滿意？重新抽取";
+            drawBtn.disabled = false; drawBtn.innerText = "開始抽取 (五連抽)";
+            initialContainer.style.display = "none"; // 隱藏原本的單個按鈕
+            actionContainer.style.display = "flex"; // 顯示雙按鈕組合
 
             for (let i = 0; i < drawCount; i++) {
                 const photoId = imagePool[i];
@@ -362,11 +378,6 @@
                 gallery.appendChild(frame);
                 setTimeout(() => { frame.classList.add('show'); }, i * 150);
             }
-
-            setTimeout(() => {
-                orderForm.style.display = "block";
-                orderForm.scrollIntoView({ behavior: 'smooth' });
-            }, 800);
         }, 1200);
     }
 
@@ -395,6 +406,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    // 修正：補上缺失的 serverTimestamp 引入
     import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -411,81 +423,98 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // --- 使用者 Profile 與 地址管理 ---
+    window.userProfile = { address: null, phone: null, name: null };
+
+    window.openAddressModal = () => {
+        if(!auth.currentUser) return alert("請先登入後再設定地址");
+        document.getElementById('address-modal').style.display = 'flex';
+        // 預填現有資訊
+        document.getElementById('addr-name').value = window.userProfile.name || "";
+        document.getElementById('addr-phone').value = window.userProfile.phone || "";
+        document.getElementById('addr-full').value = window.userProfile.address || "";
+    };
+
+    window.closeAddressModal = (event) => {
+        if(event && event.target !== document.getElementById('address-modal')) return;
+        document.getElementById('address-modal').style.display = 'none';
+    };
+
+    window.saveShippingAddress = async () => {
+        const name = document.getElementById('addr-name').value;
+        const phone = document.getElementById('addr-phone').value;
+        const address = document.getElementById('addr-full').value;
+
+        if(!name || !phone || !address) return alert("請填寫完整資訊");
+
+        try {
+            await setDoc(doc(db, "users", auth.currentUser.uid), {
+                name, phone, address,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            
+            window.userProfile = { name, phone, address };
+            alert("寄送地址已儲存！");
+            window.closeAddressModal();
+        } catch (e) {
+            console.error(e);
+            alert("儲存失敗，請檢查權限設定");
+        }
+    };
+
+    window.loadUserProfile = async (uid) => {
+        try {
+            const snap = await getDoc(doc(db, "users", uid));
+            if(snap.exists()) {
+                window.userProfile = snap.data();
+            }
+        } catch(e) { console.warn("無法讀取使用者 Profile"); }
+    };
+
     // --- 購物車核心邏輯 ---
     window.cartItems = [];
 
-    // 1. 同步儲存至 Firebase 或 LocalStorage
     window.saveCartData = async () => {
-        if (!window.cartItems) return; // 確保購物車變數存在
-
         if (auth.currentUser) {
             try {
-                const userCartRef = doc(db, "carts", auth.currentUser.uid);
-                await setDoc(userCartRef, { 
+                await setDoc(doc(db, "carts", auth.currentUser.uid), { 
                     items: window.cartItems,
-                    lastUpdated: serverTimestamp() // 加上時間戳記方便追蹤
+                    lastUpdated: serverTimestamp() // 現在 serverTimestamp 有定義了
                 });
-                console.log("購物車已成功同步至 Firebase");
-            } catch (e) {
-                console.error("雲端購物車儲存失敗：", e);
-                // 可以在這裡通知使用者
-            }
+            } catch (e) { console.error("雲端購物車儲存失敗：", e); }
         } else {
             localStorage.setItem('tempCart', JSON.stringify(window.cartItems));
-            console.log("尚未登入，已暫存至本地瀏覽器");
         }
     };
 
-    // 2. 從 Firebase 載入資料並處理本機合併 (修復 Race Condition 錯誤)
     window.loadCartData = async () => {
-        if (!auth.currentUser) return; // 安全防護，若未登入不應觸發載入雲端
-        
-        try {
-            const localCartStr = localStorage.getItem('tempCart');
-            const localCart = localCartStr ? JSON.parse(localCartStr) : [];
-            const docSnap = await getDoc(doc(db, "carts", auth.currentUser.uid));
-            
-            let cloudItems = [];
-            if (docSnap.exists()) {
-                cloudItems = docSnap.data().items || [];
-            }
-
-            let needsSaveToCloud = false;
-
-            // 如果有尚未登入時存的暫存商品，合併至雲端並清除本機暫存
-            if (localCart.length > 0) {
-                localCart.forEach(localItem => {
-                    if (localItem.type === 'merch') {
-                        const existing = cloudItems.find(i => i.type === 'merch' && i.name === localItem.name);
-                        if (existing) {
-                            existing.qty += localItem.qty;
-                        } else {
-                            cloudItems.push(localItem);
-                        }
-                    } else {
-                        cloudItems.push(localItem); // 拍立得直接加入
+        const localCart = JSON.parse(localStorage.getItem('tempCart') || '[]');
+        if (auth.currentUser) {
+            try {
+                const docSnap = await getDoc(doc(db, "carts", auth.currentUser.uid));
+                if (docSnap.exists()) {
+                    window.cartItems = docSnap.data().items || [];
+                    if (localCart.length > 0) {
+                        localCart.forEach(localItem => {
+                            const existing = window.cartItems.find(i => i.type === 'merch' && i.name === localItem.name);
+                            if (existing) existing.qty += localItem.qty;
+                            else window.cartItems.push(localItem);
+                        });
+                        localStorage.removeItem('tempCart');
+                        await window.saveCartData(); 
                     }
-                });
-                localStorage.removeItem('tempCart');
-                needsSaveToCloud = true;
-            }
-
-            // 更新當前畫面購物車數據
-            window.cartItems = cloudItems;
-
-            // 若有合併動作或是初次建立帳號(文檔不存在)，強制寫入 Firebase 一次
-            if (needsSaveToCloud || !docSnap.exists()) {
-                await window.saveCartData();
-            }
-            
-        } catch (e) { 
-            console.error("雲端購物車讀取失敗：", e); 
+                } else {
+                    window.cartItems = localCart;
+                    localStorage.removeItem('tempCart');
+                    await window.saveCartData();
+                }
+            } catch (e) { console.error("雲端購物車讀取失敗：", e); }
+        } else {
+            window.cartItems = localCart;
         }
-        
         window.renderCart();
     };
 
-    // 3. 更新購物車 UI
     window.renderCart = () => {
         const container = document.getElementById('cart-items-container');
         const totalEl = document.getElementById('cart-total');
@@ -501,9 +530,7 @@
             window.cartItems.forEach((item, index) => {
                 total += item.price * item.qty;
                 totalQty += item.qty;
-                
-                const itemName = item.type === 'polaroid' ? `📸 拍立得五連抽 <br><small style="color:#aaa; font-size:0.8rem;">(包含收件資訊)</small>` : item.name;
-                
+                const itemName = item.type === 'polaroid' ? `📸 拍立得五連抽` : item.name;
                 container.innerHTML += `
                     <div class="cart-item">
                         <div class="cart-item-info">
@@ -519,23 +546,18 @@
                 `;
             });
         }
-        
         totalEl.innerText = total.toLocaleString();
         badgeEl.innerText = totalQty;
         badgeEl.style.display = totalQty > 0 ? 'inline-block' : 'none';
     };
 
-    // 4. 數量增減
     window.changeQty = async (index, delta) => {
         window.cartItems[index].qty += delta;
-        if (window.cartItems[index].qty <= 0) {
-            window.cartItems.splice(index, 1);
-        }
+        if (window.cartItems[index].qty <= 0) window.cartItems.splice(index, 1);
         window.renderCart();
         await window.saveCartData();
     };
 
-    // 5. 購物車 Modal 控制
     window.openCartModal = () => {
         document.getElementById('cart-modal').style.display = 'flex';
         window.renderCart();
@@ -545,25 +567,16 @@
         document.getElementById('cart-modal').style.display = 'none';
     };
 
-    // --- 加入購物車操作 ---
     window.addMerchToCart = async (name, price) => {
         const existing = window.cartItems.find(i => i.type === 'merch' && i.name === name);
-        if (existing) {
-            existing.qty += 1;
-        } else {
-            window.cartItems.push({ type: 'merch', name, price, qty: 1 });
-        }
+        if (existing) existing.qty += 1;
+        else window.cartItems.push({ type: 'merch', name, price, qty: 1 });
         alert(`已將「${name}」加入購物車！`);
         window.renderCart();
         await window.saveCartData();
     };
 
     window.addPolaroidToCart = async () => {
-        const name = document.getElementById('name').value;
-        const phone = document.getElementById('phone').value;
-        const address = document.getElementById('address').value;
-
-        if (!name || !phone || !address) return alert("請填寫完整的收件資訊");
         if (typeof currentDrawIds === 'undefined' || currentDrawIds.length === 0) return alert("請先抽取拍立得！");
 
         window.cartItems.push({
@@ -571,21 +584,19 @@
             name: '拍立得五連抽',
             price: 500,
             qty: 1,
-            details: { customer_name: name, customer_phone: phone, customer_address: address, ids: currentDrawIds }
+            details: { ids: currentDrawIds }
         });
 
         alert("拍立得套組已加入購物車！");
-        
-        document.getElementById('name').value = '';
-        document.getElementById('phone').value = '';
-        document.getElementById('address').value = '';
-        document.getElementById('order-form').style.display = 'none';
+        document.getElementById('gallery').innerHTML = '<div style="color:#ddd; margin-top: 50px;">點擊下方按鈕開始抽獎</div>';
+        document.getElementById('draw-action-container').style.display = 'none';
+        document.getElementById('initial-draw-container').style.display = 'block';
 
         window.renderCart();
         await window.saveCartData();
     };
 
-    // --- 結帳功能 ---
+    // --- 結帳功能與地址檢查 ---
     window.checkoutCart = async () => {
         if (window.cartItems.length === 0) return alert("購物車是空的喔！");
         if (!auth.currentUser) {
@@ -595,25 +606,30 @@
             return;
         }
 
+        // 新增：檢查寄送地址
+        if (!window.userProfile.address || !window.userProfile.phone) {
+            alert("⚠️ 請先設定寄送地址後再進行付款！");
+            window.closeCartModal();
+            window.openAddressModal();
+            return;
+        }
+
         try {
             const totalAmount = window.cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            
             await addDoc(collection(db, "orders"), {
                 uid: auth.currentUser.uid,
                 email: auth.currentUser.email,
                 items: window.cartItems,
+                shippingInfo: window.userProfile, // 將儲存的地址帶入訂單
                 status: "待付款",
-                timestamp: new Date(),
+                timestamp: serverTimestamp(),
                 totalAmount: totalAmount
             });
-            
             alert("訂單送出成功！即將轉往付款流程。");
-            
             window.cartItems = [];
             await window.saveCartData();
             window.renderCart();
             window.closeCartModal();
-            
         } catch (e) { 
             console.error(e);
             alert("結帳失敗：" + e.message);
@@ -629,6 +645,7 @@
         try {
             await createUserWithEmailAndPassword(auth, email, pass);
             alert("註冊成功！");
+            location.reload();
         } catch (e) { alert("註冊失敗：" + e.message); }
     };
 
@@ -642,113 +659,68 @@
         } catch (e) { alert("登入失敗：" + e.message); }
     };
 
-    // 修復登出造成狀態未即時變更的問題
     window.handleLogout = async () => {
         await signOut(auth);
-        
-        // 即時清空購物車，不依賴 reload
-        window.cartItems = [];
-        localStorage.removeItem('tempCart');
-        window.renderCart();
-        
         alert("已登出");
+        location.reload(); 
     };
 
-    // --- 初始化流程防閃爍機制 ---
-    // 網頁載入時若 Firebase 尚未準備好，先從 LocalStorage 提取渲染一次
-    window.cartItems = JSON.parse(localStorage.getItem('tempCart') || '[]');
-    window.renderCart();
-
-    // --- 監聽登入狀態 (統一樞紐) ---
+    // --- 監聽登入狀態 ---
     onAuthStateChanged(auth, async (user) => {
         const userControls = document.getElementById('nav-user-controls');
         const adminBtn = document.getElementById('admin-toggle-btn');
 
         if (user) {
+            // 已登入：顯示信箱與「設定寄送地址」按鈕
             userControls.innerHTML = `
-                <span style="margin-right:15px; font-size:0.9rem;">👋 ${user.email}</span>
+                <span style="margin-right:10px; font-size:0.85rem; color:#888;">👋 ${user.email}</span>
+                <button class="nav-btn" style="border-color: var(--success-green); color: var(--success-green);" onclick="window.openAddressModal()">📍 設定寄送地址</button>
                 <button class="nav-btn" onclick="window.handleLogout()">登出</button>
             `;
-            if (user.email === 's9627970@gmail.com') {
-                adminBtn.style.display = 'inline-block';
-            } else {
-                adminBtn.style.display = 'none';
-            }
-            
-            // 使用者登入後，強制覆蓋並載入該使用者的雲端購物車
-            await window.loadCartData();
+            await window.loadUserProfile(user.uid);
+            if (user.email === 's9627970@gmail.com') adminBtn.style.display = 'inline-block';
+            else adminBtn.style.display = 'none';
         } else {
             userControls.innerHTML = `
                 <button class="nav-btn" onclick="openAuthModal('login')">會員登入</button>
                 <button class="nav-btn" onclick="openAuthModal('register')">註冊帳號</button>
             `;
             adminBtn.style.display = 'none';
-            
-            // 未登入或是已登出，切換為本機模式
-            window.cartItems = JSON.parse(localStorage.getItem('tempCart') || '[]');
-            window.renderCart();
+            window.userProfile = { address: null, phone: null, name: null };
         }
+        await window.loadCartData();
     });
+
+    window.loadCartData();
 
     // --- 後台：抓取所有訂單 ---
     window.fetchAllOrders = async () => {
         const adminOrderList = document.getElementById('admin-order-list');
         if (!adminOrderList) return;
-        
         adminOrderList.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">資料載入中...</td></tr>';
-        
         try {
             const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
-            
             let html = '';
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                const itemsArray = data.items || [];
-                
-                let name = '-', phone = '-', address = '-';
-                const polaroidItem = itemsArray.find(i => i.type === 'polaroid');
-                if (polaroidItem && polaroidItem.details) {
-                    name = polaroidItem.details.customer_name || '-';
-                    phone = polaroidItem.details.customer_phone || '-';
-                    address = polaroidItem.details.customer_address || '-';
-                }
-
-                let contentStrs = [];
-                itemsArray.forEach(item => {
-                    if (item.type === 'polaroid') {
-                        contentStrs.push(`拍立得 [${item.details.ids.join(',')}] x${item.qty}`);
-                    } else {
-                        contentStrs.push(`${item.name} x${item.qty}`);
-                    }
+                const ship = data.shippingInfo || {};
+                let contentStrs = (data.items || []).map(item => {
+                    return item.type === 'polaroid' ? `📸 拍立得 [${item.details.ids.join(',')}]` : `${item.name} x${item.qty}`;
                 });
-                const finalContent = contentStrs.join(' <br> ');
-
-                let timeString = '未知時間';
-                if (data.timestamp && typeof data.timestamp.toDate === 'function') {
-                    timeString = data.timestamp.toDate().toLocaleString();
-                }
-
+                let timeString = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : '未知時間';
                 html += `
-                    <tr style="background: white; transition: 0.3s; font-size: 0.9rem;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='white'">
-                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${timeString}<br><small style="color:#888;">${data.email}</small></td>
-                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${name}</td>
-                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${phone}</td>
-                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${address}</td>
-                        <td style="padding: 15px; border-bottom: 1px solid #eee; line-height: 1.5;">${finalContent} <br><strong style="color:#e57373;">總計: $${data.totalAmount || 0}</strong></td>
-                    </tr>
-                `;
+                    <tr style="background: white; transition: 0.3s; font-size: 0.9rem;">
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${timeString}<br><small>${data.email}</small></td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${ship.name || '-'}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${ship.phone || '-'}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${ship.address || '-'}</td>
+                        <td style="padding: 15px; border-bottom: 1px solid #eee;">${contentStrs.join('<br>')}<br><strong>$${data.totalAmount}</strong></td>
+                    </tr>`;
             });
-            
-            if (html === '') {
-                adminOrderList.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">目前尚無訂單資料</td></tr>';
-            } else {
-                adminOrderList.innerHTML = html;
-            }
-            
+            adminOrderList.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">尚無訂單</td></tr>';
         } catch (error) {
-            console.error("抓取訂單失敗：", error);
-            adminOrderList.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:20px;">讀取失敗：${error.message}</td></tr>`;
+            adminOrderList.innerHTML = `<tr><td colspan="5" style="color:red;">讀取失敗：${error.message}</td></tr>`;
         }
     };
 </script>
@@ -759,20 +731,18 @@
             <h1 style="color: var(--accent-brown); margin: 0;">🐾 訂單管理後台</h1>
             <button class="nav-btn" onclick="toggleAdminDashboard()" style="background: var(--accent-brown); color: white;">關閉並返回首頁</button>
         </div>
-
         <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: var(--secondary-cream); text-align: left;">
-                        <th style="padding: 15px; border-bottom: 2px solid #eee; min-width: 150px;">訂購時間/帳號</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">時間/帳號</th>
                         <th style="padding: 15px; border-bottom: 2px solid #eee;">收件人</th>
                         <th style="padding: 15px; border-bottom: 2px solid #eee;">電話</th>
                         <th style="padding: 15px; border-bottom: 2px solid #eee;">地址</th>
-                        <th style="padding: 15px; border-bottom: 2px solid #eee;">購買內容</th>
+                        <th style="padding: 15px; border-bottom: 2px solid #eee;">內容</th>
                     </tr>
                 </thead>
-                <tbody id="admin-order-list">
-                </tbody>
+                <tbody id="admin-order-list"></tbody>
             </table>
         </div>
     </div>
