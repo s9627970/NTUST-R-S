@@ -8,6 +8,11 @@
     <link rel="icon" href="icon/icon.jpg" type="image/jpeg">
     
     <style>
+        /* 解決寬度計算超出螢幕的問題 */
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --primary-peach: #ffb7b2;
             --secondary-cream: #fff4e6;
@@ -45,7 +50,7 @@
         .nav-right {
             display: flex; 
             align-items: center;
-            gap: 10px; /* 增加按鈕間距 */
+            gap: 10px;
         }
 
         .nav-btn {
@@ -186,7 +191,7 @@
         .auth-form.active { display: block; }
         .auth-form h2 { text-align: center; color: #d88a8a; margin-top: 0; margin-bottom: 20px; }
         .auth-input-group { margin-bottom: 15px; }
-        .auth-input-group input { width: 100%; padding: 12px; border: 2px solid var(--secondary-cream); border-radius: 8px; outline: none; box-sizing: border-box; background: #fafafa; transition: border 0.3s; }
+        .auth-input-group input { width: 100%; padding: 12px; border: 2px solid var(--secondary-cream); border-radius: 8px; outline: none; background: #fafafa; transition: border 0.3s; }
         .auth-input-group input:focus { border-color: var(--primary-peach); background: white; }
         .auth-switch { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #888; }
         .auth-switch a { color: #e57373; text-decoration: none; font-weight: bold; }
@@ -896,7 +901,6 @@
 
     window.loadCartData();
 
-    // =============== 這裡更新了後台訂單顯示邏輯 (改為卡片式排版) ===============
     window.fetchAllOrders = async () => {
         const adminOrderList = document.getElementById('admin-order-list');
         if (!adminOrderList) return;
@@ -924,17 +928,13 @@
                 let statusText = data.status || '未知';
                 let statusColor = statusText === '待付款' ? '#e57373' : (statusText === '已取消' ? '#999' : 'var(--success-green)');
                 
-                // 改用靈活的卡片 (Card) 設計，而不是 Table
                 html += `
                     <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #e0e0e0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
-                        
                         <div style="display: flex; justify-content: space-between; border-bottom: 2px dashed #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
                             <span style="color:${statusColor}; font-weight:bold; font-size: 1.1rem;">【${statusText}】</span>
                             <span style="color: #888; font-size: 0.9rem;">🕒 ${timeString}</span>
                         </div>
-
                         <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.95rem; line-height: 1.6;">
-                            
                             <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
                                 <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">👤 顧客與配送資訊</div>
                                 <div><strong style="color:#555;">帳號：</strong>${data.email || '無Email'}</div>
@@ -942,7 +942,6 @@
                                 <div><strong style="color:#555;">電話：</strong>${ship.phone || '-'}</div>
                                 <div><strong style="color:#555;">地址：</strong>${ship.address || '-'}</div>
                             </div>
-
                             <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
                                 <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📦 訂單內容明細</div>
                                 <div style="color: #444;">
@@ -952,7 +951,6 @@
                                     總計金額: $${data.totalAmount || 0}
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 `;
@@ -965,15 +963,15 @@
     };
 </script>
 
-<div id="admin-dashboard-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fffaf5; z-index: 2000; overflow-y: auto; padding: 20px;">
+<div id="admin-dashboard-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fffaf5; z-index: 2000; overflow-y: auto; padding: 20px;">
     <div style="max-width: 900px; margin: 0 auto; background: transparent;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary-peach); padding-bottom: 15px; margin-bottom: 25px; margin-top: 20px;">
-            <h1 style="color: var(--accent-brown); margin: 0; font-size: 1.5rem;">🐾 訂單管理後台</h1>
-            <button class="btn" onclick="toggleAdminDashboard()" style="background: var(--accent-brown); color: white; padding: 10px 20px;">返回首頁</button>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 3px solid var(--primary-peach); padding-bottom: 15px; margin-bottom: 25px; margin-top: 20px;">
+            <h1 style="color: var(--accent-brown); margin: 0; font-size: 1.5rem; word-break: break-word;">🐾 訂單管理後台</h1>
+            <button class="btn" onclick="toggleAdminDashboard()" style="background: var(--accent-brown); color: white; padding: 10px 20px; white-space: nowrap;">返回首頁</button>
         </div>
         
         <div id="admin-order-list">
-            </div>
+        </div>
     </div>
 </div>
 
