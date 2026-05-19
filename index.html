@@ -516,14 +516,14 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-
 const ORDER_STATUS = {
     SHIP_PENDING: '待出貨',
     SHIPPED: '已出貨',
-    CANCELED: '已取消'
+    CANCELED: '已取消',
 };
 
 const isEditableOrder = (status) => status === ORDER_STATUS.SHIP_PENDING;
+const isCanceledOrder = (status) => status === ORDER_STATUS.CANCELED;
 const getOrderStatusColor = (status) => {
     if (status === ORDER_STATUS.SHIP_PENDING) return '#e57373';
     if (status === ORDER_STATUS.SHIPPED) return 'var(--success-green)';
@@ -687,6 +687,7 @@ window.addEventListener('message', (event) => {
 
             let html = '';
             orders.forEach(data => {
+
                 const date = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : '未知時間';
                 let itemsHtml = data.items.map(i => {
                     return i.type === 'polaroid' ? `📸 拍立得五連抽 x${i.qty}` : `${i.name} x${i.qty}`;
@@ -981,7 +982,6 @@ window.addEventListener('message', (event) => {
 
     window.loadCartData();
 
-
 window.fetchAllOrders = async () => {
     const adminOrderList = document.getElementById('admin-order-list');
     if (!adminOrderList) return;
@@ -995,6 +995,8 @@ window.fetchAllOrders = async () => {
         let html = '';
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            if (data.isDeleted || data.status === ORDER_STATUS.DELETED) return;
+
             const ship = data.shippingInfo || {};
 
             let contentStrs = (data.items || []).map(item => {
@@ -1008,13 +1010,18 @@ window.fetchAllOrders = async () => {
             let timeString = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : '處理中...';
             let statusText = data.status || '未知';
             let statusColor = getOrderStatusColor(statusText);
-            const statusSelectHtml = `
+            const statusSelectHtml = isEditableOrder(statusText)
+                ? `
                 <div style="margin-top: 12px;">
                     <label style="display:block; font-size:0.9rem; color:#666; margin-bottom:6px;">更新狀態</label>
                     <select onchange="window.updateOrderStatus('${docSnap.id}', this.value)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; background:#fff;">
                         <option value="待出貨" ${statusText === '待出貨' ? 'selected' : ''}>待出貨</option>
                         <option value="已出貨" ${statusText === '已出貨' ? 'selected' : ''}>已出貨</option>
                     </select>
+                </div>`
+                : `
+                <div style="margin-top: 12px; padding: 10px; border: 1px dashed #ddd; border-radius: 8px; background: #fff; color: #888;">
+                    ${statusText === ORDER_STATUS.CANCELED ? '此訂單已取消，無法更新狀態。' : '此訂單不可更新狀態。'}
                 </div>`;
 
             html += `
@@ -1058,6 +1065,14 @@ window.fetchAllOrders = async () => {
 window.updateOrderStatus = async (orderId, newStatus) => {
     try {
         const orderRef = doc(db, "orders", orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) return alert("找不到這筆訂單！");
+
+        const currentStatus = orderSnap.data().status || '未知';
+        if (!isEditableOrder(currentStatus)) {
+            return alert("此訂單目前不是待出貨狀態，無法更新。");
+        }
+
         await updateDoc(orderRef, {
             status: newStatus,
             updatedAt: serverTimestamp()
@@ -1073,7 +1088,11 @@ window.updateOrderStatus = async (orderId, newStatus) => {
 window.deleteOrder = async (orderId) => {
     if (!confirm("確定要刪除這筆訂單嗎？刪除後無法復原。")) return;
     try {
-        await deleteDoc(doc(db, "orders", orderId));
+        const orderRef = doc(db, "orders", orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) return alert("找不到這筆訂單！");
+
+        await deleteDoc(orderRef);
         alert("訂單已刪除！");
         await window.fetchAllOrders();
         if (auth.currentUser) await window.fetchUserOrders();
