@@ -315,7 +315,7 @@
             </div>
             <button class="nav-btn map-launch-btn" onclick="window.openSevenElevenMap()">開啟門市查詢</button>
         </div>
-        <div class="field-hint">可先按右側按鈕開啟 7-11 門市查詢，選到門市後會盡量自動回填店號；若未自動帶回，也可以直接貼上店號。</div>
+        <div class="field-hint">可按右側按鈕開啟 7-11 門市查詢；查詢完畢後請手動貼上店號。</div>
         <button class="btn" style="width: 100%;" onclick="window.saveShippingAddress()">儲存店號</button>
     </div>
 </div>
@@ -553,7 +553,7 @@ window.sevenElevenMapPopup = null;
 window.sevenElevenMapMonitor = null;
 
 window.openSevenElevenMap = () => {
-    const url = 'https://emap.pcsc.com.tw/ecmap/default.aspx';
+    const url = 'https://emap.pcsc.com.tw/';
     const popup = window.open(url, 'sevenElevenEMap', 'width=1200,height=860,resizable=yes,scrollbars=yes');
     if (!popup) {
         alert('瀏覽器阻擋了彈出視窗，請允許彈出視窗後再試一次。');
@@ -571,23 +571,6 @@ window.openSevenElevenMap = () => {
             window.sevenElevenMapPopup = null;
         }
     }, 500);
-};
-
-window.receiveSevenElevenStoreId = (storeId) => {
-    const input = document.getElementById('addr-storeid');
-    const normalized = String(storeId || '').trim();
-    if (!normalized) return;
-    input.value = normalized;
-    input.dataset.autoFilled = '1';
-    if (window.sevenElevenMapPopup && !window.sevenElevenMapPopup.closed) {
-        try { window.sevenElevenMapPopup.close(); } catch (e) {}
-    }
-    window.sevenElevenMapPopup = null;
-    if (window.sevenElevenMapMonitor) {
-        clearInterval(window.sevenElevenMapMonitor);
-        window.sevenElevenMapMonitor = null;
-    }
-    alert(`已帶回門市店號：${normalized}`);
 };
 
 window.addEventListener('message', (event) => {
