@@ -1184,9 +1184,11 @@ window.renderExportOrderList = () => {
 };
 
 window.exportSelectedOrdersToXlsm = async () => {
-    const selectedIndexes = Array.from(document.querySelectorAll('#export-orders-list input[type="checkbox"]:checked'))
+    const selectedIndexes = Array.from(
+        document.querySelectorAll('#export-orders-list input[type="checkbox"]:checked')
+    )
         .map(cb => Number(cb.dataset.orderIndex))
-        .filter(n => Number.isFinite(n));
+        .filter(Number.isFinite);
 
     if (selectedIndexes.length === 0) {
         alert('請先勾選至少一筆訂單。');
@@ -1199,67 +1201,89 @@ window.exportSelectedOrdersToXlsm = async () => {
     }
 
     try {
-        const templateResp = await fetch('賣貨便_範本.xlsm');
+        const templateResp = await fetch('賣貨便_範本.xlsm'); // 改成你的實際檔名
         if (!templateResp.ok) throw new Error('無法讀取 xlsm 範本');
         const templateArrayBuffer = await templateResp.arrayBuffer();
 
-        const wb = XLSX.read(templateArrayBuffer, { type: 'array', cellDates: true, bookVBA: true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
+        const wb = XLSX.read(templateArrayBuffer, {
+            type: 'array',
+            cellDates: true,
+            bookVBA: true
+        });
 
-        // 清空舊資料列（從第 7 列開始）
-        for (let row = 7; row <= 506; row++) {
-            for (let col = 0; col < 11; col++) {
-                const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
-                delete ws[cellRef];
-            }
-        }
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const exportOrders = selectedIndexes
+            .map(i => window.adminOrders[i])
+            .filter(Boolean);
 
         const fillRowStart = 7;
-        const exportOrders = selectedIndexes.map(i => window.adminOrders[i]);
+
+        const writeCell = (row, col, value, type) => {
+            const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
+            const oldCell = ws[cellRef] || {};
+
+            if (value === undefined || value === null || value === '') {
+                delete ws[cellRef];
+                return;
+            }
+
+            ws[cellRef] = {
+                ...oldCell,
+                v: value,
+                t: type || (typeof value === 'number' ? 'n' : 's')
+            };
+        };
 
         exportOrders.forEach((order, idx) => {
             const row = fillRowStart + idx;
             const ship = order.shippingInfo || {};
-            const values = [
-                ship.name || '',
-                ship.phone || '',
-                ship.storeId || ship.address || '',
-                '常溫',
-                buildOrderProductText(order),
-                Number(order.totalAmount || 0),
-                38,
-                formatOrderDateForExport(order.timestamp),
-                '',
-                '',
-                ''
-            ];
 
-            values.forEach((value, colIdx) => {
-                const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: colIdx });
-                ws[cellRef] = { t: 's', v: String(value ?? '') };
-            });
+            const name = ship.name || '';
+            const phone = ship.phone || '';
+            const store = ship.storeId || ship.address || '';
+            const productText = buildOrderProductText(order); // 你原本的函式
+            const totalAmount = Number(order.totalAmount || 0);
+            const orderDate = formatOrderDateForExport(order.timestamp); // 你原本的函式
+
+            // 只寫入需要的欄位：A~F
+            writeCell(row, 0, name, 's');          // 姓名
+            writeCell(row, 1, phone, 's');         // 手機
+            writeCell(row, 2, store, 's');         // 取件門市
+            writeCell(row, 3, productText, 's');    // 商品
+            writeCell(row, 4, totalAmount, 'n');    // 訂單金額
+            writeCell(row, 5, orderDate, 's');      // 買家下訂日期
         });
 
-        const rangeEndRow = fillRowStart + exportOrders.length - 1;
-        ws['!ref'] = `A1:K${Math.max(rangeEndRow, 17)}`;
+        // 只更新使用範圍，不改其他欄位內容
+        const endRow = fillRowStart + exportOrders.length - 1;
+        ws['!ref'] = ws['!ref'] || `A1:F${Math.max(endRow, 7)}`;
 
-        const out = XLSX.write(wb, { bookType: 'xlsm', type: 'array', bookVBA: true });
-        const blob = new Blob([out], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+        const out = XLSX.write(wb, {
+            bookType: 'xlsm',
+            type: 'array',
+            bookVBA: true
+        });
+
+        const blob = new Blob([out], {
+            type: 'application/vnd.ms-excel.sheet.macroEnabled.12'
+        });
+
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement('a');
         a.href = url;
+
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
-        const filename = `賣貨便匯出_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsm`;
-        a.download = filename;
+        a.download = `賣貨便匯出_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsm`;
+
         document.body.appendChild(a);
         a.click();
         a.remove();
+
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         alert(`已匯出 ${exportOrders.length} 筆訂單。`);
-        window.closeExportModal();
+        window.closeExportModal?.();
     } catch (error) {
         console.error('匯出失敗：', error);
         alert('匯出失敗：' + error.message);
