@@ -193,6 +193,22 @@
         .auth-input-group { margin-bottom: 15px; }
         .auth-input-group input { width: 100%; padding: 12px; border: 2px solid var(--secondary-cream); border-radius: 8px; outline: none; background: #fafafa; transition: border 0.3s; }
         .auth-input-group input:focus { border-color: var(--primary-peach); background: white; }
+.inline-field-row { display: flex; gap: 10px; align-items: stretch; }
+.inline-field-row .auth-input-group { flex: 1; margin-bottom: 0; }
+.map-launch-btn {
+    padding: 12px 16px;
+    margin-left: 0;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+.field-hint {
+    margin: 8px 0 14px;
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.5;
+    text-align: left;
+}
         .auth-switch { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #888; }
         .auth-switch a { color: #e57373; text-decoration: none; font-weight: bold; }
         .auth-switch a:hover { text-decoration: underline; }
@@ -289,12 +305,18 @@
 <div class="modal-overlay" id="address-modal" onclick="window.closeAddressModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-btn" onclick="window.closeAddressModal()">&times;</span>
-        <h2 style="color: var(--accent-brown);">📦 設定寄送地址</h2>
+        <h2 style="color: var(--accent-brown);">📦 設定 7-11 門市店號</h2>
         <p style="font-size: 0.9rem; color: #888; margin-bottom: 20px;">此資訊將用於商品與拍立得寄送</p>
         <div class="auth-input-group"><input type="text" id="addr-name" placeholder="收件人姓名"></div>
         <div class="auth-input-group"><input type="tel" id="addr-phone" placeholder="聯絡電話"></div>
-        <div class="auth-input-group"><input type="text" id="addr-full" placeholder="完整收件地址"></div>
-        <button class="btn" style="width: 100%;" onclick="window.saveShippingAddress()">儲存地址</button>
+        <div class="inline-field-row">
+            <div class="auth-input-group">
+                <input type="text" id="addr-storeid" placeholder="7-11 門市店號">
+            </div>
+            <button class="nav-btn map-launch-btn" onclick="window.openSevenElevenMap()">開啟門市查詢</button>
+        </div>
+        <div class="field-hint">可先按右側按鈕開啟 7-11 門市查詢，選到門市後會盡量自動回填店號；若未自動帶回，也可以直接貼上店號。</div>
+        <button class="btn" style="width: 100%;" onclick="window.saveShippingAddress()">儲存店號</button>
     </div>
 </div>
 
@@ -526,14 +548,64 @@
         }
     };
 
-    window.userProfile = { address: null, phone: null, name: null };
+    window.userProfile = { address: null, storeId: null, phone: null, name: null };
+window.sevenElevenMapPopup = null;
+window.sevenElevenMapMonitor = null;
+
+window.openSevenElevenMap = () => {
+    const url = 'https://emap.pcsc.com.tw/ecmap/default.aspx';
+    const popup = window.open(url, 'sevenElevenEMap', 'width=1200,height=860,resizable=yes,scrollbars=yes');
+    if (!popup) {
+        alert('瀏覽器阻擋了彈出視窗，請允許彈出視窗後再試一次。');
+        return;
+    }
+
+    window.sevenElevenMapPopup = popup;
+    popup.focus();
+
+    if (window.sevenElevenMapMonitor) clearInterval(window.sevenElevenMapMonitor);
+    window.sevenElevenMapMonitor = setInterval(() => {
+        if (!window.sevenElevenMapPopup || window.sevenElevenMapPopup.closed) {
+            clearInterval(window.sevenElevenMapMonitor);
+            window.sevenElevenMapMonitor = null;
+            window.sevenElevenMapPopup = null;
+        }
+    }, 500);
+};
+
+window.receiveSevenElevenStoreId = (storeId) => {
+    const input = document.getElementById('addr-storeid');
+    const normalized = String(storeId || '').trim();
+    if (!normalized) return;
+    input.value = normalized;
+    input.dataset.autoFilled = '1';
+    if (window.sevenElevenMapPopup && !window.sevenElevenMapPopup.closed) {
+        try { window.sevenElevenMapPopup.close(); } catch (e) {}
+    }
+    window.sevenElevenMapPopup = null;
+    if (window.sevenElevenMapMonitor) {
+        clearInterval(window.sevenElevenMapMonitor);
+        window.sevenElevenMapMonitor = null;
+    }
+    alert(`已帶回門市店號：${normalized}`);
+};
+
+window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (data && typeof data === 'object' && (data.storeId || data.store_id || data.StoreId)) {
+        window.receiveSevenElevenStoreId(data.storeId || data.store_id || data.StoreId);
+    }
+    if (typeof data === 'string' && /^\d{4,6}$/.test(data.trim())) {
+        window.receiveSevenElevenStoreId(data.trim());
+    }
+});
 
     window.openAddressModal = () => {
-        if(!auth.currentUser) return alert("請先登入後再設定地址");
+        if(!auth.currentUser) return alert("請先登入後再設定 7-11 店號");
         document.getElementById('address-modal').style.display = 'flex';
         document.getElementById('addr-name').value = window.userProfile.name || "";
         document.getElementById('addr-phone').value = window.userProfile.phone || "";
-        document.getElementById('addr-full').value = window.userProfile.address || "";
+        document.getElementById('addr-storeid').value = window.userProfile.storeId || window.userProfile.address || "";
     };
 
     window.closeAddressModal = (event) => {
@@ -542,20 +614,23 @@
     };
 
     window.saveShippingAddress = async () => {
-        const name = document.getElementById('addr-name').value;
-        const phone = document.getElementById('addr-phone').value;
-        const address = document.getElementById('addr-full').value;
+        const name = document.getElementById('addr-name').value.trim();
+        const phone = document.getElementById('addr-phone').value.trim();
+        const storeId = document.getElementById('addr-storeid').value.trim();
 
-        if(!name || !phone || !address) return alert("請填寫完整資訊");
+        if(!name || !phone || !storeId) return alert("請填寫完整資訊");
 
         try {
             await setDoc(doc(db, "users", auth.currentUser.uid), {
-                name, phone, address,
+                name,
+                phone,
+                storeId,
+                address: storeId,
                 updatedAt: serverTimestamp()
             }, { merge: true });
             
-            window.userProfile = { name, phone, address };
-            alert("寄送地址已儲存！");
+            window.userProfile = { name, phone, storeId, address: storeId };
+            alert("門市店號已儲存！");
             window.closeAddressModal();
         } catch (e) {
             console.error(e);
@@ -830,8 +905,8 @@
             return;
         }
 
-        if (!window.userProfile.address || !window.userProfile.phone) {
-            alert("⚠️ 請先設定寄送地址後再進行付款！");
+        if (!(window.userProfile.storeId || window.userProfile.address) || !window.userProfile.phone) {
+            alert("⚠️ 請先設定 7-11 門市店號後再進行付款！");
             window.closeCartModal();
             window.openAddressModal();
             return;
@@ -883,7 +958,7 @@
             userControls.innerHTML = `
                 <span style="margin-right:10px; font-size:0.85rem; color:#888;">👋 ${user.email}</span>
                 <button class="nav-btn" style="border-color: #64b5f6; color: #64b5f6;" onclick="window.openUserOrders()">📋 我的訂單</button>
-                <button class="nav-btn" style="border-color: var(--success-green); color: var(--success-green);" onclick="window.openAddressModal()">📍 設定寄送地址</button>
+                <button class="nav-btn" style="border-color: var(--success-green); color: var(--success-green);" onclick="window.openAddressModal()">📍 設定 7-11 店號</button>
                 <button class="nav-btn" onclick="window.handleLogout()">登出</button>
             `;
             await window.loadUserProfile(user.uid);
@@ -894,7 +969,7 @@
                 <button class="nav-btn" onclick="openAuthModal('login')">會員登入</button>
             `;
             adminBtn.style.display = 'none';
-            window.userProfile = { address: null, phone: null, name: null };
+            window.userProfile = { address: null, storeId: null, phone: null, name: null };
         }
         await window.loadCartData();
     });
@@ -940,7 +1015,7 @@
                                 <div><strong style="color:#555;">帳號：</strong>${data.email || '無Email'}</div>
                                 <div><strong style="color:#555;">收件：</strong>${ship.name || '-'}</div>
                                 <div><strong style="color:#555;">電話：</strong>${ship.phone || '-'}</div>
-                                <div><strong style="color:#555;">地址：</strong>${ship.address || '-'}</div>
+                                <div><strong style="color:#555;">店號：</strong>${ship.storeId || ship.address || '-'}</div>
                             </div>
                             <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
                                 <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📦 訂單內容明細</div>
