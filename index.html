@@ -1233,9 +1233,9 @@ window.exportSelectedOrdersToXlsm = async () => {
             sheet.row(row).cell(1).value(name);         // A欄: 姓名
             sheet.row(row).cell(2).value(phone);        // B欄: 手機
             sheet.row(row).cell(3).value(store);        // C欄: 取件門市店號
-            sheet.row(row).cell(4).value(productText);  // D欄: 商品名稱
-            sheet.row(row).cell(5).value(totalAmount);  // E欄: 訂單金額
-            sheet.row(row).cell(6).value(orderDate);    // F欄: 買家下訂日期
+            sheet.row(row).cell(5).value(productText);  // D欄: 商品名稱
+            sheet.row(row).cell(6).value(totalAmount);  // E欄: 訂單金額
+            sheet.row(row).cell(8).value(orderDate);    // F欄: 買家下訂日期
         });
 
         // 4. 輸出二進位資料並觸發下載 (會完美保留原本的 .xlsm 巨集格式)
@@ -1255,7 +1255,7 @@ window.exportSelectedOrdersToXlsm = async () => {
 
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-        alert(`已成功匯出 ${exportOrders.length} 筆訂單，且未破壞範本格式。`);
+        alert(`已成功匯出 ${exportOrders.length} 筆訂單。`);
         window.closeExportModal?.();
     } catch (error) {
         console.error('匯出失敗：', error);
