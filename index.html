@@ -1201,40 +1201,61 @@ window.exportSelectedOrdersToXlsm = async () => {
     }
 
     try {
-        const templateResp = await fetch('賣貨便_範本.xlsm'); // 改成你的實際檔名
+        const templateResp = await fetch('賣貨便_範本.xlsm'); 
         if (!templateResp.ok) throw new Error('無法讀取 xlsm 範本');
         const templateArrayBuffer = await templateResp.arrayBuffer();
 
+        // 1. 讀取原始範本，核心：cellStyles: true 必須開啟，全面保留樣式
         const wb = XLSX.read(templateArrayBuffer, {
             type: 'array',
             cellDates: true,
-            bookVBA: true
+            bookVBA: true,
+            cellStyles: true
         });
 
-        const ws = wb.Sheets[wb.SheetNames[0]];
+        const sourceSheetName = wb.SheetNames[0];
+        const sourceWs = wb.Sheets[sourceSheetName];
+
+        // 2. 建立一個全新的乾淨工作表物件，並完整複製原始範本的所有屬性（避免指標污染）
+        const ws = {};
+        for (let key in sourceWs) {
+            if (sourceWs.hasOwnProperty(key)) {
+                if (typeof sourceWs[key] === 'object' && sourceWs[key] !== null) {
+                    ws[key] = JSON.parse(JSON.stringify(sourceWs[key])); // 深拷貝儲存格與樣式
+                } else {
+                    ws[key] = sourceWs[key];
+                }
+            }
+        }
+
+        // 將處理後的工作表放回工作簿
+        wb.Sheets[sourceSheetName] = ws;
+
         const exportOrders = selectedIndexes
             .map(i => window.adminOrders[i])
             .filter(Boolean);
 
         const fillRowStart = 7;
 
-        // 修改後的安全寫入函式：只蓋過數值，保留範本原本的樣式與結構
+        // 3. 超安全寫入：如果原本有樣式就保留樣式，只替換文字數值
         const writeCell = (row, col, value, type) => {
             const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
             
-            // 如果該儲存格在範本中不存在，才建立一個空物件
+            // 如果拷貝過來的工作表沒有這一格，才初始化它
             if (!ws[cellRef]) {
-                ws[cellRef] = {};
+                ws[cellRef] = { t: 's', v: '' };
             }
 
-            // 確保值不是 null 或 undefined，若為空值則寫入空字串而非刪除儲存格
             const safeValue = (value === undefined || value === null) ? '' : value;
 
-            // 只修改或新增值 (v) 與型態 (t)，絕對不覆蓋原本的 s (Style) 或其他屬性
             ws[cellRef].v = safeValue;
             ws[cellRef].t = type || (typeof safeValue === 'number' ? 'n' : 's');
+            
+            // 如果原本範本這一格有設定 w (格式化文字)，寫入新值時將其刪除，讓 Excel 重新計算
+            if (ws[cellRef].w) delete ws[cellRef].w;
         };
 
+        // 4. 開始填入訂單資料
         exportOrders.forEach((order, idx) => {
             const row = fillRowStart + idx;
             const ship = order.shippingInfo || {};
@@ -1246,7 +1267,7 @@ window.exportSelectedOrdersToXlsm = async () => {
             const totalAmount = Number(order.totalAmount || 0);
             const orderDate = formatOrderDateForExport(order.timestamp);
 
-            // 依序寫入 A~F 欄，不更動其他欄位
+            // 嚴格只覆蓋 A ~ F 欄的特定列
             writeCell(row, 0, name, 's');          // A: 姓名
             writeCell(row, 1, phone, 's');         // B: 手機
             writeCell(row, 2, store, 's');         // C: 取件門市
@@ -1255,8 +1276,8 @@ window.exportSelectedOrdersToXlsm = async () => {
             writeCell(row, 5, orderDate, 's');      // F: 買家下訂日期
         });
 
-        // ⚠️ 關鍵修正：不要硬踩或限縮範本原本的 !ref（範圍），否則後方的隱藏公式或欄位會被截斷
-        // 只有在當前資料列超過原本範圍時，才延伸 !ref
+        // 5. 絕對不要去動原始範本的 !ref 範圍與其餘欄位，維持範本原本宣告的邊界
+        // 只有當填寫的資料列數「超過」原本範本預設的範圍時，才進行最大列數延伸
         if (ws['!ref']) {
             const range = XLSX.utils.decode_range(ws['!ref']);
             const endRow = fillRowStart + exportOrders.length - 1;
@@ -1264,15 +1285,13 @@ window.exportSelectedOrdersToXlsm = async () => {
                 range.e.r = endRow - 1;
                 ws['!ref'] = XLSX.utils.encode_range(range);
             }
-        } else {
-            const endRow = fillRowStart + exportOrders.length - 1;
-            ws['!ref'] = `A1:F${Math.max(endRow, 7)}`;
         }
 
+        // 6. 輸出二進位 XLSM 檔案
         const out = XLSX.write(wb, {
             bookType: 'xlsm',
             type: 'array',
-            bookVBA: true // 確保維持 VBA 巨集
+            bookVBA: true
         });
 
         const blob = new Blob([out], {
