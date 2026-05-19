@@ -500,7 +500,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, fetchSignInMethodsForEmail, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, setDoc, getDoc, serverTimestamp, where, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, setDoc, getDoc, serverTimestamp, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCLguQGCeZZ8LN18HUME2WMOllV_Uqi2Lc",
@@ -515,6 +515,21 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+
+const ORDER_STATUS = {
+    SHIP_PENDING: '待出貨',
+    SHIPPED: '已出貨',
+    CANCELED: '已取消'
+};
+
+const isEditableOrder = (status) => status === ORDER_STATUS.SHIP_PENDING;
+const getOrderStatusColor = (status) => {
+    if (status === ORDER_STATUS.SHIP_PENDING) return '#e57373';
+    if (status === ORDER_STATUS.SHIPPED) return 'var(--success-green)';
+    if (status === ORDER_STATUS.CANCELED) return '#999';
+    return '#888';
+};
 
     window.handleGoogleLogin = async () => {
         const provider = new GoogleAuthProvider();
@@ -678,7 +693,7 @@ window.addEventListener('message', (event) => {
                 }).join('<br>');
 
                 let actionButtons = '';
-                if (data.status === '待付款') {
+                if (isEditableOrder(data.status)) {
                     actionButtons = `
                         <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
                             <button class="nav-btn" style="border-color: #e57373; color: #e57373; margin-left: 0; padding: 4px 12px; font-size: 0.85rem;" onclick="window.cancelOrder('${data.id}')">取消訂單</button>
@@ -691,7 +706,7 @@ window.addEventListener('message', (event) => {
                     <div class="order-card">
                         <div class="order-card-header">
                             <strong>訂單編號: ${data.id.slice(0,8)}...</strong>
-                            <span style="color: ${data.status === '待付款' ? '#e57373' : (data.status === '已取消' ? '#999' : 'var(--success-green)')}; font-weight: bold;">${data.status}</span>
+                            <span style="color: ${getOrderStatusColor(data.status)}; font-weight: bold;">${data.status}</span>
                         </div>
                         <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🕒 建立時間: ${date}</div>
                         <div style="margin-bottom: 10px; line-height: 1.6;">${itemsHtml}</div>
@@ -712,10 +727,16 @@ window.addEventListener('message', (event) => {
     };
 
     window.cancelOrder = async (orderId) => {
-        if (!confirm("確定要取消這筆訂單嗎？取消後將無法復原。")) return;
         try {
-            await updateDoc(doc(db, "orders", orderId), {
-                status: "已取消",
+            const orderRef = doc(db, "orders", orderId);
+            const orderSnap = await getDoc(orderRef);
+            if (!orderSnap.exists()) return alert("找不到訂單！");
+            const orderData = orderSnap.data();
+            if (!isEditableOrder(orderData.status)) return alert("只有待出貨的訂單才能取消。");
+            if (!confirm("確定要取消這筆訂單嗎？取消後將無法復原。")) return;
+
+            await updateDoc(orderRef, {
+                status: ORDER_STATUS.CANCELED,
                 updatedAt: serverTimestamp()
             });
             alert("訂單已成功取消！");
@@ -724,15 +745,16 @@ window.addEventListener('message', (event) => {
     };
 
     window.editOrder = async (orderId) => {
-        if (!confirm("修改訂單會將這筆訂單「取消」，並將裡面的商品退回您的購物車以便重新調整數量。確定要修改嗎？")) return;
-        
         try {
-            const orderSnap = await getDoc(doc(db, "orders", orderId));
+            const orderRef = doc(db, "orders", orderId);
+            const orderSnap = await getDoc(orderRef);
             if(!orderSnap.exists()) return alert("找不到訂單！");
             const orderData = orderSnap.data();
+            if (!isEditableOrder(orderData.status)) return alert("只有待出貨的訂單才能修改。");
+            if (!confirm("修改訂單會將這筆訂單「取消」，並將裡面的商品退回您的購物車以便重新調整數量。確定要修改嗎？")) return;
 
-            await updateDoc(doc(db, "orders", orderId), {
-                status: "已取消",
+            await updateDoc(orderRef, {
+                status: ORDER_STATUS.CANCELED,
                 updatedAt: serverTimestamp()
             });
 
@@ -902,7 +924,7 @@ window.addEventListener('message', (event) => {
                 email: auth.currentUser.email,
                 items: window.cartItems,
                 shippingInfo: window.userProfile, 
-                status: "待付款",
+                status: "待出貨",
                 timestamp: serverTimestamp(),
                 totalAmount: totalAmount
             });
@@ -959,66 +981,106 @@ window.addEventListener('message', (event) => {
 
     window.loadCartData();
 
-    window.fetchAllOrders = async () => {
-        const adminOrderList = document.getElementById('admin-order-list');
-        if (!adminOrderList) return;
-        
-        adminOrderList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">資料載入中...</div>';
-        
-        try {
-            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
-            
-            let html = '';
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const ship = data.shippingInfo || {};
-                
-                let contentStrs = (data.items || []).map(item => {
-                    if (item.type === 'polaroid') {
-                        const ids = item.details?.ids ? item.details.ids.join(',') : '未知';
-                        return `📸 拍立得 [${ids}] x${item.qty}`;
-                    }
-                    return `🛍️ ${item.name} x${item.qty}`;
-                });
 
-                let timeString = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : '處理中...';
-                let statusText = data.status || '未知';
-                let statusColor = statusText === '待付款' ? '#e57373' : (statusText === '已取消' ? '#999' : 'var(--success-green)');
-                
-                html += `
-                    <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #e0e0e0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 2px dashed #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
-                            <span style="color:${statusColor}; font-weight:bold; font-size: 1.1rem;">【${statusText}】</span>
-                            <span style="color: #888; font-size: 0.9rem;">🕒 ${timeString}</span>
+window.fetchAllOrders = async () => {
+    const adminOrderList = document.getElementById('admin-order-list');
+    if (!adminOrderList) return;
+
+    adminOrderList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">資料載入中...</div>';
+
+    try {
+        const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        let html = '';
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const ship = data.shippingInfo || {};
+
+            let contentStrs = (data.items || []).map(item => {
+                if (item.type === 'polaroid') {
+                    const ids = item.details?.ids ? item.details.ids.join(',') : '未知';
+                    return `📸 拍立得 [${ids}] x${item.qty}`;
+                }
+                return `🛍️ ${item.name} x${item.qty}`;
+            });
+
+            let timeString = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : '處理中...';
+            let statusText = data.status || '未知';
+            let statusColor = getOrderStatusColor(statusText);
+            const statusSelectHtml = `
+                <div style="margin-top: 12px;">
+                    <label style="display:block; font-size:0.9rem; color:#666; margin-bottom:6px;">更新狀態</label>
+                    <select onchange="window.updateOrderStatus('${docSnap.id}', this.value)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; background:#fff;">
+                        <option value="待出貨" ${statusText === '待出貨' ? 'selected' : ''}>待出貨</option>
+                        <option value="已出貨" ${statusText === '已出貨' ? 'selected' : ''}>已出貨</option>
+                    </select>
+                </div>`;
+
+            html += `
+                <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #e0e0e0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 2px dashed #f0f0f0; padding-bottom: 10px; margin-bottom: 15px; gap: 12px; flex-wrap: wrap;">
+                        <span style="color:${statusColor}; font-weight:bold; font-size: 1.1rem;">【${statusText}】</span>
+                        <span style="color: #888; font-size: 0.9rem;">🕒 ${timeString}</span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.95rem; line-height: 1.6;">
+                        <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
+                            <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">👤 顧客與配送資訊</div>
+                            <div><strong style="color:#555;">帳號：</strong>${data.email || '無Email'}</div>
+                            <div><strong style="color:#555;">收件：</strong>${ship.name || '-'}</div>
+                            <div><strong style="color:#555;">電話：</strong>${ship.phone || '-'}</div>
+                            <div><strong style="color:#555;">店號：</strong>${ship.storeId || ship.address || '-'}</div>
+                            ${statusSelectHtml}
                         </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.95rem; line-height: 1.6;">
-                            <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
-                                <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">👤 顧客與配送資訊</div>
-                                <div><strong style="color:#555;">帳號：</strong>${data.email || '無Email'}</div>
-                                <div><strong style="color:#555;">收件：</strong>${ship.name || '-'}</div>
-                                <div><strong style="color:#555;">電話：</strong>${ship.phone || '-'}</div>
-                                <div><strong style="color:#555;">店號：</strong>${ship.storeId || ship.address || '-'}</div>
+                        <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
+                            <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📦 訂單內容明細</div>
+                            <div style="color: #444;">
+                                ${contentStrs.join('<br>')}
                             </div>
-                            <div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px;">
-                                <div style="color: var(--accent-brown); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📦 訂單內容明細</div>
-                                <div style="color: #444;">
-                                    ${contentStrs.join('<br>')}
-                                </div>
-                                <div style="margin-top: 15px; font-size: 1.2rem; color: #e57373; font-weight: bold; text-align: right;">
-                                    總計金額: $${data.totalAmount || 0}
-                                </div>
+                            <div style="margin-top: 15px; font-size: 1.2rem; color: #e57373; font-weight: bold; text-align: right;">
+                                總計金額: $${data.totalAmount || 0}
+                            </div>
+                            <div style="margin-top: 15px; text-align: right;">
+                                <button class="nav-btn" style="border-color:#e57373; color:#e57373; margin-left:0;" onclick="window.deleteOrder('${docSnap.id}')">刪除訂單</button>
                             </div>
                         </div>
                     </div>
-                `;
-            });
-            adminOrderList.innerHTML = html || '<div style="text-align:center; padding: 20px;">目前尚無任何訂單</div>';
-        } catch (error) {
-            console.error("讀取失敗:", error);
-            adminOrderList.innerHTML = `<div style="color:red; text-align:center; padding:20px;">讀取失敗：${error.message}</div>`;
-        }
-    };
+                </div>
+            `;
+        });
+        adminOrderList.innerHTML = html || '<div style="text-align:center; padding: 20px;">目前尚無任何訂單</div>';
+    } catch (error) {
+        console.error("讀取失敗:", error);
+        adminOrderList.innerHTML = `<div style="color:red; text-align:center; padding:20px;">讀取失敗：${error.message}</div>`;
+    }
+};
+
+window.updateOrderStatus = async (orderId, newStatus) => {
+    try {
+        const orderRef = doc(db, "orders", orderId);
+        await updateDoc(orderRef, {
+            status: newStatus,
+            updatedAt: serverTimestamp()
+        });
+        alert("訂單狀態已更新！");
+        await window.fetchAllOrders();
+        if (auth.currentUser) await window.fetchUserOrders();
+    } catch (error) {
+        alert("更新失敗: " + error.message);
+    }
+};
+
+window.deleteOrder = async (orderId) => {
+    if (!confirm("確定要刪除這筆訂單嗎？刪除後無法復原。")) return;
+    try {
+        await deleteDoc(doc(db, "orders", orderId));
+        alert("訂單已刪除！");
+        await window.fetchAllOrders();
+        if (auth.currentUser) await window.fetchUserOrders();
+    } catch (error) {
+        alert("刪除失敗: " + error.message);
+    }
+};
 </script>
 
 <div id="admin-dashboard-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fffaf5; z-index: 2000; overflow-y: auto; padding: 20px;">
