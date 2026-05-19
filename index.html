@@ -1268,7 +1268,7 @@ window.exportSelectedOrdersToXlsm = async () => {
 </script>
 
 
-<div class="modal-overlay" id="export-orders-modal" onclick="window.closeExportModal(event)">
+<div class="modal-overlay" id="export-orders-modal" style="z-index: 3000;" onclick="window.closeExportModal(event)">
     <div class="modal-content" style="max-width: 760px; width: 95%; max-height: 85vh; overflow-y: auto; text-align: left;" onclick="event.stopPropagation()">
         <span class="close-btn" onclick="window.closeExportModal()">&times;</span>
         <h2 style="color: var(--accent-brown); margin-top: 0; text-align: center;">📤 匯出賣貨便 Excel</h2>
