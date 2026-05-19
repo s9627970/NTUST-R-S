@@ -1218,20 +1218,21 @@ window.exportSelectedOrdersToXlsm = async () => {
 
         const fillRowStart = 7;
 
+        // 修改後的安全寫入函式：只蓋過數值，保留範本原本的樣式與結構
         const writeCell = (row, col, value, type) => {
             const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
-            const oldCell = ws[cellRef] || {};
-
-            if (value === undefined || value === null || value === '') {
-                delete ws[cellRef];
-                return;
+            
+            // 如果該儲存格在範本中不存在，才建立一個空物件
+            if (!ws[cellRef]) {
+                ws[cellRef] = {};
             }
 
-            ws[cellRef] = {
-                ...oldCell,
-                v: value,
-                t: type || (typeof value === 'number' ? 'n' : 's')
-            };
+            // 確保值不是 null 或 undefined，若為空值則寫入空字串而非刪除儲存格
+            const safeValue = (value === undefined || value === null) ? '' : value;
+
+            // 只修改或新增值 (v) 與型態 (t)，絕對不覆蓋原本的 s (Style) 或其他屬性
+            ws[cellRef].v = safeValue;
+            ws[cellRef].t = type || (typeof safeValue === 'number' ? 'n' : 's');
         };
 
         exportOrders.forEach((order, idx) => {
@@ -1241,27 +1242,37 @@ window.exportSelectedOrdersToXlsm = async () => {
             const name = ship.name || '';
             const phone = ship.phone || '';
             const store = ship.storeId || ship.address || '';
-            const productText = buildOrderProductText(order); // 你原本的函式
+            const productText = buildOrderProductText(order); 
             const totalAmount = Number(order.totalAmount || 0);
-            const orderDate = formatOrderDateForExport(order.timestamp); // 你原本的函式
+            const orderDate = formatOrderDateForExport(order.timestamp);
 
-            // 只寫入需要的欄位：A~F
-            writeCell(row, 0, name, 's');          // 姓名
-            writeCell(row, 1, phone, 's');         // 手機
-            writeCell(row, 2, store, 's');         // 取件門市
-            writeCell(row, 3, productText, 's');    // 商品
-            writeCell(row, 4, totalAmount, 'n');    // 訂單金額
-            writeCell(row, 5, orderDate, 's');      // 買家下訂日期
+            // 依序寫入 A~F 欄，不更動其他欄位
+            writeCell(row, 0, name, 's');          // A: 姓名
+            writeCell(row, 1, phone, 's');         // B: 手機
+            writeCell(row, 2, store, 's');         // C: 取件門市
+            writeCell(row, 3, productText, 's');    // D: 商品
+            writeCell(row, 4, totalAmount, 'n');    // E: 訂單金額
+            writeCell(row, 5, orderDate, 's');      // F: 買家下訂日期
         });
 
-        // 只更新使用範圍，不改其他欄位內容
-        const endRow = fillRowStart + exportOrders.length - 1;
-        ws['!ref'] = ws['!ref'] || `A1:F${Math.max(endRow, 7)}`;
+        // ⚠️ 關鍵修正：不要硬踩或限縮範本原本的 !ref（範圍），否則後方的隱藏公式或欄位會被截斷
+        // 只有在當前資料列超過原本範圍時，才延伸 !ref
+        if (ws['!ref']) {
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const endRow = fillRowStart + exportOrders.length - 1;
+            if (endRow - 1 > range.e.r) {
+                range.e.r = endRow - 1;
+                ws['!ref'] = XLSX.utils.encode_range(range);
+            }
+        } else {
+            const endRow = fillRowStart + exportOrders.length - 1;
+            ws['!ref'] = `A1:F${Math.max(endRow, 7)}`;
+        }
 
         const out = XLSX.write(wb, {
             bookType: 'xlsm',
             type: 'array',
-            bookVBA: true
+            bookVBA: true // 確保維持 VBA 巨集
         });
 
         const blob = new Blob([out], {
