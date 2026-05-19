@@ -497,7 +497,7 @@
     }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-populate@1.21.0/browser/xlsx-populate.min.js"></script>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1195,67 +1195,29 @@ window.exportSelectedOrdersToXlsm = async () => {
         return;
     }
 
-    if (typeof XLSX === 'undefined') {
-        alert('匯出模組尚未載入完成，請稍後再試。');
+    // 檢查新套件是否載入成功
+    if (typeof XlsxPopulate === 'undefined') {
+        alert('匯出模組 (xlsx-populate) 尚未載入完成，請稍後再試。');
         return;
     }
 
     try {
+        // 1. 讀取原始賣貨便 xlsm 範本
         const templateResp = await fetch('賣貨便_範本.xlsm'); 
-        if (!templateResp.ok) throw new Error('無法讀取 xlsm 範本');
+        if (!templateResp.ok) throw new Error('無法讀取 xlsm 範本，請確認檔案路徑是否正確');
         const templateArrayBuffer = await templateResp.arrayBuffer();
 
-        // 1. 讀取原始範本，核心：cellStyles: true 必須開啟，全面保留樣式
-        const wb = XLSX.read(templateArrayBuffer, {
-            type: 'array',
-            cellDates: true,
-            bookVBA: true,
-            cellStyles: true
-        });
-
-        const sourceSheetName = wb.SheetNames[0];
-        const sourceWs = wb.Sheets[sourceSheetName];
-
-        // 2. 建立一個全新的乾淨工作表物件，並完整複製原始範本的所有屬性（避免指標污染）
-        const ws = {};
-        for (let key in sourceWs) {
-            if (sourceWs.hasOwnProperty(key)) {
-                if (typeof sourceWs[key] === 'object' && sourceWs[key] !== null) {
-                    ws[key] = JSON.parse(JSON.stringify(sourceWs[key])); // 深拷貝儲存格與樣式
-                } else {
-                    ws[key] = sourceWs[key];
-                }
-            }
-        }
-
-        // 將處理後的工作表放回工作簿
-        wb.Sheets[sourceSheetName] = ws;
+        // 2. 使用 xlsx-populate 載入二進位資料
+        const workbook = await XlsxPopulate.fromDataAsync(templateArrayBuffer);
+        const sheet = workbook.sheet(0); // 取得第一個工作表
 
         const exportOrders = selectedIndexes
             .map(i => window.adminOrders[i])
             .filter(Boolean);
 
-        const fillRowStart = 7;
+        const fillRowStart = 7; // 賣貨便通常從第 7 行開始填入資料
 
-        // 3. 超安全寫入：如果原本有樣式就保留樣式，只替換文字數值
-        const writeCell = (row, col, value, type) => {
-            const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: col });
-            
-            // 如果拷貝過來的工作表沒有這一格，才初始化它
-            if (!ws[cellRef]) {
-                ws[cellRef] = { t: 's', v: '' };
-            }
-
-            const safeValue = (value === undefined || value === null) ? '' : value;
-
-            ws[cellRef].v = safeValue;
-            ws[cellRef].t = type || (typeof safeValue === 'number' ? 'n' : 's');
-            
-            // 如果原本範本這一格有設定 w (格式化文字)，寫入新值時將其刪除，讓 Excel 重新計算
-            if (ws[cellRef].w) delete ws[cellRef].w;
-        };
-
-        // 4. 開始填入訂單資料
+        // 3. 純粹填入資料，絕對不觸動任何原本的樣式與結構
         exportOrders.forEach((order, idx) => {
             const row = fillRowStart + idx;
             const ship = order.shippingInfo || {};
@@ -1267,38 +1229,19 @@ window.exportSelectedOrdersToXlsm = async () => {
             const totalAmount = Number(order.totalAmount || 0);
             const orderDate = formatOrderDateForExport(order.timestamp);
 
-            // 嚴格只覆蓋 A ~ F 欄的特定列
-            writeCell(row, 0, name, 's');          // A: 姓名
-            writeCell(row, 1, phone, 's');         // B: 手機
-            writeCell(row, 2, store, 's');         // C: 取件門市
-            writeCell(row, 3, productText, 's');    // D: 商品
-            writeCell(row, 4, totalAmount, 'n');    // E: 訂單金額
-            writeCell(row, 5, orderDate, 's');      // F: 買家下訂日期
+            // 使用 xlsx-populate 的 row().cell() 來精準寫入值 (1-indexed)
+            sheet.row(row).cell(1).value(name);         // A欄: 姓名
+            sheet.row(row).cell(2).value(phone);        // B欄: 手機
+            sheet.row(row).cell(3).value(store);        // C欄: 取件門市店號
+            sheet.row(row).cell(4).value(productText);  // D欄: 商品名稱
+            sheet.row(row).cell(5).value(totalAmount);  // E欄: 訂單金額
+            sheet.row(row).cell(6).value(orderDate);    // F欄: 買家下訂日期
         });
 
-        // 5. 絕對不要去動原始範本的 !ref 範圍與其餘欄位，維持範本原本宣告的邊界
-        // 只有當填寫的資料列數「超過」原本範本預設的範圍時，才進行最大列數延伸
-        if (ws['!ref']) {
-            const range = XLSX.utils.decode_range(ws['!ref']);
-            const endRow = fillRowStart + exportOrders.length - 1;
-            if (endRow - 1 > range.e.r) {
-                range.e.r = endRow - 1;
-                ws['!ref'] = XLSX.utils.encode_range(range);
-            }
-        }
+        // 4. 輸出二進位資料並觸發下載 (會完美保留原本的 .xlsm 巨集格式)
+        const outBlob = await workbook.outputAsync();
 
-        // 6. 輸出二進位 XLSM 檔案
-        const out = XLSX.write(wb, {
-            bookType: 'xlsm',
-            type: 'array',
-            bookVBA: true
-        });
-
-        const blob = new Blob([out], {
-            type: 'application/vnd.ms-excel.sheet.macroEnabled.12'
-        });
-
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(outBlob);
         const a = document.createElement('a');
         a.href = url;
 
@@ -1312,7 +1255,7 @@ window.exportSelectedOrdersToXlsm = async () => {
 
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-        alert(`已匯出 ${exportOrders.length} 筆訂單。`);
+        alert(`已成功匯出 ${exportOrders.length} 筆訂單，且未破壞範本格式。`);
         window.closeExportModal?.();
     } catch (error) {
         console.error('匯出失敗：', error);
